@@ -1,4 +1,4 @@
-// Generated from ./src/antlr/PSCLexer.g4 by ANTLR 4.13.2
+// Generated from ./PSCLexer.g4 by ANTLR 4.13.2
 // noinspection ES6UnusedImports,JSUnusedGlobalSymbols,JSUnusedLocalSymbols
 import {
 	ATN,
@@ -11,7 +11,7 @@ import {
 	PredictionContextCache,
 	Token
 } from "antlr4";
-import PSCLexerBase from './PSCLexerBase.js';
+import PSCLexerBase from '../PSCLexerBase.js';
 
 export default class PSCLexer extends PSCLexerBase {
 	public static readonly INDENT = 1;

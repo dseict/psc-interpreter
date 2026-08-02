@@ -4,6 +4,7 @@ options {
 	caseInsensitive = true;
 	superClass = PSCLexerBase;
 }
+
 tokens {
 	INDENT,
 	DEDENT

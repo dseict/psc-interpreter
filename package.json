@@ -10,6 +10,7 @@
   },
   "scripts": {
     "test": "vitest",
-    "antlr": "antlr4 -Dlanguage=TypeScript -no-listener -visitor ./src/antlr/PSCLexer.g4 ./src/antlr/PSCParser.g4"
+    "antlr": "cd src && rm -r -f ./antlr && antlr4 -o antlr -Dlanguage=TypeScript -no-listener -visitor ./PSCLexer.g4 ./PSCParser.g4 && node --eval \"fs.writeFileSync('antlr/PSCLexer.ts', fs.readFileSync('antlr/PSCLexer.ts', 'utf-8').replace('./PSCLexerBase.js', '../PSCLexerBase.js'))\"",
+    "format": "prettier . --write"
   }
 }
