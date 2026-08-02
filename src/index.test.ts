@@ -1,6 +1,6 @@
 import { describe, expect, it, test } from 'vitest'
 import { interpret, type InterpreterOptions } from '.'
-import { AccessNonExistingVariableError, ConditionNotBooleanError, ForRangeNotNumberError, OperationValueTypeMismatchError } from './error'
+import { AccessNonExistingVariableError, ArrayAccessNotArrayError, ArrayIndexNotIntegerError, ArrayIndexOutOfBoundsError, ConditionNotBooleanError, ForRangeNotNumberError, OperationValueTypeMismatchError } from './error'
 
 function output(code: string, options?: InterpreterOptions) {
   const out = [] as string[]
@@ -164,6 +164,58 @@ describe("arrays", () => {
       "output A"
     ].join("\n")
     expect(outputOf(code)).toStrictEqual(["[1,2,3]"])
+  })
+  describe("should access element of an array literal correctly", () => {
+    test.for([
+      ["[0,2,1][1]", "0"],
+      ["[1,2,3,4,5][2]", "2"],
+      ["[1,2,5,6,7][4]", "6"],
+      ["[1,2,5,6,7][4]", "6"],
+    ])("%s -> %s", ([a, b]) => {
+      expect(output(a!)).toBe(b)
+    })
+  })
+  it("should access element of an array variable correctly", () => {
+    const code = [
+      "A <- [1,2,3,4]",
+      "output A[1]"
+    ].join("\n")
+    expect(outputOf(code)).toStrictEqual(["1"])
+  })
+  describe("should throw for bad array indices", () => {
+    test.for([
+      "[0,2,3][0]", "[0,2,3][4]", "[0,2,3][-1]"
+    ])("%s", (c) => {
+      expect(() => output(c)).toThrow(ArrayIndexOutOfBoundsError)
+    })
+    test.for([
+      "[0,2,3][0.1]", "[0,2,3][-1.5]", "[0,2,3]['abc']", "[0,1,2][true]"
+    ])("%s", (c) => {
+      expect(() => output(c)).toThrow(ArrayIndexNotIntegerError)
+    })
+  })
+  describe("should throw if it is not even an array", () => {
+    test.for([
+      "'2'[0]", "true[4]", "2[-1]"
+    ])("%s", (c) => {
+      expect(() => output(c)).toThrow(ArrayAccessNotArrayError)
+    })
+  })
+  describe("should be able to chain array access", () => {
+    test.for([
+      ["[1,[9,9.9],3][2][1]", "9"],
+      ["[true, false, [9, 1]][3][1]", "9"]
+    ])("%s", ([a, b]) => {
+      expect(output(a!)).toBe(b)
+    })
+  })
+  it("should be able to iterate through an array", () => {
+    const code = [
+      "A <- [10,9,8,7,6,5,4,3,2,1]",
+      "for i from 1 to 10",
+      "  output A[i]"
+    ].join("\n")
+    expect(outputOf(code)).toStrictEqual(["10", "9", "8", "7", "6", "5", "4", "3", "2", "1"])
   })
 })
 

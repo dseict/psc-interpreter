@@ -38,6 +38,24 @@ export class ForVariableReuseError extends Error {
   }
 }
 
+export class ArrayIndexOutOfBoundsError extends Error {
+  constructor(ctx: ParserRuleContext | undefined, index: number, arrayLength: number) {
+    super(`Array index ${index} is out of bounds for array of length ${arrayLength}. ${ctx && generateLineColMessage(ctx)}`)
+  }
+}
+
+export class ArrayIndexNotIntegerError extends Error {
+  constructor(ctx: ParserRuleContext | undefined, got: string) {
+    super(`Array index must be an integer, got ${got}. ${ctx && generateLineColMessage(ctx)}`)
+  }
+}
+
+export class ArrayAccessNotArrayError extends Error {
+  constructor(ctx: ParserRuleContext | undefined, got: string) {
+    super(`Cannot access an array index on a non-array value, got ${got}. ${ctx && generateLineColMessage(ctx)}`)
+  }
+}
+
 export class ImpossibleError extends Error {
   constructor(ctx: ParserRuleContext | undefined, message: string) {
     super(`The following error should not be possible. Please report this bug:\n${message}. ${ctx && generateLineColMessage(ctx)}`)

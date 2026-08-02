@@ -2,7 +2,7 @@ import { CharStream, CommonTokenStream, ErrorListener, ParserRuleContext, ParseT
 import PSCLexer from "./antlr/PSCLexer";
 import PSCParser, { AddExprContext, AndExprContext, ArrayLitsContext, AsmStmtContext, AtomContext, BlockContext, CompExprContext, DoWhileStmtContext, ExpExprContext, ExprContext, FloatLitsContext, ForStmtContext, GroupExprContext, IfStmtContext, InputStmtContext, IntLitsContext, LitsContext, MulExprContext, NotExprContext, OrExprContext, OutputStmtContext, PrimaryExprContext, ProgramContext, RepeatUntilStmtContext, StmtContext, StmtsContext, UnaryExprContext, WhileStmtContext } from "./antlr/PSCParser";
 import PSCParserVisitor from "./antlr/PSCParserVisitor";
-import { AccessNonExistingVariableError, ConditionNotBooleanError, ForRangeNotNumberError, ForVariableReuseError, ImpossibleError, OperationValueTypeMismatchError } from "./error";
+import { AccessNonExistingVariableError, ArrayAccessNotArrayError, ArrayIndexNotIntegerError, ArrayIndexOutOfBoundsError, ConditionNotBooleanError, ForRangeNotNumberError, ForVariableReuseError, ImpossibleError, OperationValueTypeMismatchError } from "./error";
 export type InterpreterOptions = {
   strictVariableScope?: boolean;
   outputFunction?: (output: any) => void;
@@ -305,7 +305,24 @@ class PSCInterpreter extends PSCParserVisitor<any> {
   }
 
   override visitPrimaryExpr = (ctx: PrimaryExprContext): any => {
-    return this.visit(ctx.groupExpr())
+    if (ctx.LSQUARE() && ctx.RSQUARE()) {
+      const index = this.visit(ctx.expr())
+      if (typeof index !== "number" || !Number.isInteger(index)) {
+        throw new ArrayIndexNotIntegerError(ctx, index)
+      }
+      const arr = this.visit(ctx.primaryExpr())
+      if (!Array.isArray(arr)) {
+        throw new ArrayAccessNotArrayError(ctx, arr)
+      }
+      if (index < 1 || index > arr.length) {
+        throw new ArrayIndexOutOfBoundsError(ctx, index, arr.length)
+      }
+      return arr[index - 1] // 1-based indexing
+    }
+    else if (ctx.groupExpr()) {
+      return this.visit(ctx.groupExpr())
+    }
+    throw new ImpossibleError(ctx, "Invalid primary")
   }
 
   override visitGroupExpr = (ctx: GroupExprContext): any => {
