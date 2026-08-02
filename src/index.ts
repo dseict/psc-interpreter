@@ -1,6 +1,6 @@
 import { CharStream, CommonTokenStream, ErrorListener, ParserRuleContext, ParseTree, RuleNode, Token } from "antlr4";
 import PSCLexer from "./antlr/PSCLexer";
-import PSCParser, { AddExprContext, AndExprContext, AsmStmtContext, AtomContext, BlockContext, CompExprContext, DoWhileStmtContext, ExpExprContext, ExprContext, ForStmtContext, IfStmtContext, InputStmtContext, LitsContext, MulExprContext, NotExprContext, OrExprContext, OutputStmtContext, ProgramContext, RepeatUntilStmtContext, StmtContext, StmtsContext, WhileStmtContext } from "./antlr/PSCParser";
+import PSCParser, { AddExprContext, AndExprContext, ArrayLitsContext, AsmStmtContext, AtomContext, BlockContext, CompExprContext, DoWhileStmtContext, ExpExprContext, ExprContext, FloatLitsContext, ForStmtContext, IfStmtContext, InputStmtContext, IntLitsContext, LitsContext, MulExprContext, NotExprContext, OrExprContext, OutputStmtContext, ProgramContext, RepeatUntilStmtContext, StmtContext, StmtsContext, WhileStmtContext } from "./antlr/PSCParser";
 import PSCParserVisitor from "./antlr/PSCParserVisitor";
 import { AccessNonExistingVariableError, ConditionNotBooleanError, ForRangeNotNumberError, ForVariableReuseError, ImpossibleError, OperationValueTypeMismatchError } from "./error";
 export type InterpreterOptions = {
@@ -100,6 +100,19 @@ class PSCInterpreter extends PSCParserVisitor<any> {
       throw new ImpossibleError(this.currentCtx, "Cannot pop the global variable stack.");
     }
     this.variableStack.pop();
+  }
+
+  asString(value: any): string {
+    if (Array.isArray(value)) {
+      return `[${value.map(v => this.asString(v)).join(",")}]`;
+    } else if (typeof value === 'boolean') {
+      return value ? 'true' : 'false';
+    } else if (typeof value === 'number') {
+      return value.toString();
+    } else if (typeof value === 'string') {
+      return value;
+    }
+    throw new ImpossibleError(this.currentCtx, `Cannot convert value of type ${typeof value} to string.`);
   }
 
   override visit = (ctx: ParserRuleContext) => {
@@ -294,18 +307,37 @@ class PSCInterpreter extends PSCParserVisitor<any> {
   }
 
   override visitLits = (ctx: LitsContext): any => {
-    if (ctx.FLOAT()) {
-      const sign = ctx.MINUS() !== null ? -1 : 1;
-      return parseFloat(ctx.FLOAT().getText()) * sign;
-    }
-    else if (ctx.INTEGER()) {
-      const sign = ctx.MINUS() !== null ? -1 : 1;
-      return parseInt(ctx.INTEGER().getText(), 10) * sign;
+    if (ctx.floatLits()) {
+      return this.visit(ctx.floatLits());
+    } else if (ctx.intLits()) {
+      return this.visit(ctx.intLits())
+    } else if (ctx.arrayLits()) {
+      return this.visit(ctx.arrayLits())
     } else if (ctx.STRING()) {
       return ctx.STRING().getText().slice(1, -1); // Remove quotes
     } else if (ctx.BOOLEAN()) {
       return ctx.BOOLEAN().getText().toLowerCase() === 'true';
     }
+  }
+
+  override visitIntLits = (ctx: IntLitsContext): number => {
+    const sign = ctx.MINUS() !== null ? -1 : 1;
+    return parseInt(ctx.INTEGER().getText(), 10) * sign;
+  }
+
+  override visitFloatLits = (ctx: FloatLitsContext): number => {
+    const sign = ctx.MINUS() !== null ? -1 : 1;
+    return parseFloat(ctx.FLOAT().getText()) * sign;
+  }
+
+  override visitArrayLits = (ctx: ArrayLitsContext): any[] => {
+    const elements: any[] = [];
+    if (ctx.expr_list()) {
+      for (const expr of ctx.expr_list()) {
+        elements.push(this.visit(expr));
+      }
+    }
+    return elements;
   }
 
   override visitStmts = (ctx: StmtsContext): void => {
@@ -472,7 +504,7 @@ class PSCInterpreter extends PSCParserVisitor<any> {
   }
 
   override visitOutputStmt = (ctx: OutputStmtContext): void => {
-    const val = this.visit(ctx.expr()).toString();
+    const val = this.asString(this.visit(ctx.expr()));
     this.options.outputFunction?.(val);
   }
 }

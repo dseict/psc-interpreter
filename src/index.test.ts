@@ -52,6 +52,17 @@ describe("parse literals", () => {
       expect(output(a!)).toBe(b)
     })
   })
+  describe("array", () => {
+    test.for([
+      [`[]`, "[]"],
+      [`[1, 2, 3]`, "[1,2,3]"],
+      [`[1, 'a', true]`, "[1,a,true]"],
+      [`[[1, 2], [3, 4]]`, "[[1,2],[3,4]]"],
+      [`[[1, [ 2, true], 'a'], [3, 4]]`, "[[1,[2,true],a],[3,4]]"],
+    ])("%s -> %s", ([a, b]) => {
+      expect(output(a!)).toBe(b)
+    })
+  })
 })
 
 describe("variables", () => {

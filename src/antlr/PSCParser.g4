@@ -22,7 +22,11 @@ mulExpr: expExpr (mulOp expExpr)*;
 expExpr: atom (expOp atom)*;
 atom: lits | ID | LPAREN expr RPAREN;
 
-lits: MINUS? INTEGER | MINUS? FLOAT | STRING | BOOLEAN;
+lits: intLits | floatLits | arrayLits | STRING | BOOLEAN;
+
+intLits: MINUS? INTEGER;
+floatLits: MINUS? FLOAT;
+arrayLits: LSQUARE (expr (COMMA expr)*)? RSQUARE;
 
 // Statements
 stmts: (stmt | NEWLINE)+;

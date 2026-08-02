@@ -12,9 +12,14 @@ tokens {
 WHITESPACE: (' ' | '\t')+ -> skip;
 NEWLINE: '\r'? '\n' (' ' | '\t')*;
 COMMENT: ('#' | '//') ~[\r\n]*;
+COMMA: ',';
 
+// Brackets
 LPAREN: '(';
 RPAREN: ')';
+
+LSQUARE: '[';
+RSQUARE: ']';
 
 // Literals
 SQUOTE: '\'';

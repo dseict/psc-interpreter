@@ -18,6 +18,9 @@ import { MulExprContext } from "./PSCParser.js";
 import { ExpExprContext } from "./PSCParser.js";
 import { AtomContext } from "./PSCParser.js";
 import { LitsContext } from "./PSCParser.js";
+import { IntLitsContext } from "./PSCParser.js";
+import { FloatLitsContext } from "./PSCParser.js";
+import { ArrayLitsContext } from "./PSCParser.js";
 import { StmtsContext } from "./PSCParser.js";
 import { StmtContext } from "./PSCParser.js";
 import { BlockContext } from "./PSCParser.js";
@@ -129,6 +132,24 @@ export default class PSCParserVisitor<Result> extends ParseTreeVisitor<Result> {
 	 * @return the visitor result
 	 */
 	visitLits?: (ctx: LitsContext) => Result;
+	/**
+	 * Visit a parse tree produced by `PSCParser.intLits`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitIntLits?: (ctx: IntLitsContext) => Result;
+	/**
+	 * Visit a parse tree produced by `PSCParser.floatLits`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitFloatLits?: (ctx: FloatLitsContext) => Result;
+	/**
+	 * Visit a parse tree produced by `PSCParser.arrayLits`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitArrayLits?: (ctx: ArrayLitsContext) => Result;
 	/**
 	 * Visit a parse tree produced by `PSCParser.stmts`.
 	 * @param ctx the parse tree

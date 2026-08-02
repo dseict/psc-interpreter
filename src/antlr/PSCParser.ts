@@ -23,43 +23,46 @@ export default class PSCParser extends Parser {
 	public static readonly WHITESPACE = 3;
 	public static readonly NEWLINE = 4;
 	public static readonly COMMENT = 5;
-	public static readonly LPAREN = 6;
-	public static readonly RPAREN = 7;
-	public static readonly SQUOTE = 8;
-	public static readonly DQUOTE = 9;
-	public static readonly STRING = 10;
-	public static readonly INTEGER = 11;
-	public static readonly FLOAT = 12;
-	public static readonly BOOLEAN = 13;
-	public static readonly PLUS = 14;
-	public static readonly MINUS = 15;
-	public static readonly MULTIPLY = 16;
-	public static readonly DIVIDE = 17;
-	public static readonly MODULO = 18;
-	public static readonly EXPONENT = 19;
-	public static readonly AND = 20;
-	public static readonly OR = 21;
-	public static readonly NOT = 22;
-	public static readonly EQUAL = 23;
-	public static readonly NEQUAL = 24;
-	public static readonly GT = 25;
-	public static readonly LT = 26;
-	public static readonly GTEQ = 27;
-	public static readonly LTEQ = 28;
-	public static readonly IF = 29;
-	public static readonly ELSE = 30;
-	public static readonly WHILE = 31;
-	public static readonly DO = 32;
-	public static readonly REPEAT = 33;
-	public static readonly UNTIL = 34;
-	public static readonly FOR = 35;
-	public static readonly FROM = 36;
-	public static readonly DOWN = 37;
-	public static readonly TO = 38;
-	public static readonly ASSIGN = 39;
-	public static readonly INPUT = 40;
-	public static readonly OUTPUT = 41;
-	public static readonly ID = 42;
+	public static readonly COMMA = 6;
+	public static readonly LPAREN = 7;
+	public static readonly RPAREN = 8;
+	public static readonly LSQUARE = 9;
+	public static readonly RSQUARE = 10;
+	public static readonly SQUOTE = 11;
+	public static readonly DQUOTE = 12;
+	public static readonly STRING = 13;
+	public static readonly INTEGER = 14;
+	public static readonly FLOAT = 15;
+	public static readonly BOOLEAN = 16;
+	public static readonly PLUS = 17;
+	public static readonly MINUS = 18;
+	public static readonly MULTIPLY = 19;
+	public static readonly DIVIDE = 20;
+	public static readonly MODULO = 21;
+	public static readonly EXPONENT = 22;
+	public static readonly AND = 23;
+	public static readonly OR = 24;
+	public static readonly NOT = 25;
+	public static readonly EQUAL = 26;
+	public static readonly NEQUAL = 27;
+	public static readonly GT = 28;
+	public static readonly LT = 29;
+	public static readonly GTEQ = 30;
+	public static readonly LTEQ = 31;
+	public static readonly IF = 32;
+	public static readonly ELSE = 33;
+	public static readonly WHILE = 34;
+	public static readonly DO = 35;
+	public static readonly REPEAT = 36;
+	public static readonly UNTIL = 37;
+	public static readonly FOR = 38;
+	public static readonly FROM = 39;
+	public static readonly DOWN = 40;
+	public static readonly TO = 41;
+	public static readonly ASSIGN = 42;
+	public static readonly INPUT = 43;
+	public static readonly OUTPUT = 44;
+	public static readonly ID = 45;
 	public static override readonly EOF = Token.EOF;
 	public static readonly RULE_program = 0;
 	public static readonly RULE_addOp = 1;
@@ -76,34 +79,39 @@ export default class PSCParser extends Parser {
 	public static readonly RULE_expExpr = 12;
 	public static readonly RULE_atom = 13;
 	public static readonly RULE_lits = 14;
-	public static readonly RULE_stmts = 15;
-	public static readonly RULE_stmt = 16;
-	public static readonly RULE_block = 17;
-	public static readonly RULE_ifStmt = 18;
-	public static readonly RULE_whileStmt = 19;
-	public static readonly RULE_doWhileStmt = 20;
-	public static readonly RULE_repeatUntilStmt = 21;
-	public static readonly RULE_forStmt = 22;
-	public static readonly RULE_asmStmt = 23;
-	public static readonly RULE_inputStmt = 24;
-	public static readonly RULE_outputStmt = 25;
+	public static readonly RULE_intLits = 15;
+	public static readonly RULE_floatLits = 16;
+	public static readonly RULE_arrayLits = 17;
+	public static readonly RULE_stmts = 18;
+	public static readonly RULE_stmt = 19;
+	public static readonly RULE_block = 20;
+	public static readonly RULE_ifStmt = 21;
+	public static readonly RULE_whileStmt = 22;
+	public static readonly RULE_doWhileStmt = 23;
+	public static readonly RULE_repeatUntilStmt = 24;
+	public static readonly RULE_forStmt = 25;
+	public static readonly RULE_asmStmt = 26;
+	public static readonly RULE_inputStmt = 27;
+	public static readonly RULE_outputStmt = 28;
 	public static readonly literalNames: (string | null)[] = [ null, null, 
                                                             null, null, 
                                                             null, null, 
-                                                            "'('", "')'", 
-                                                            "'''", "'\"'", 
+                                                            "','", "'('", 
+                                                            "')'", "'['", 
+                                                            "']'", "'''", 
+                                                            "'\"'", null, 
                                                             null, null, 
-                                                            null, null, 
-                                                            "'+'", "'-'", 
-                                                            "'*'", "'/'", 
-                                                            null, null, 
-                                                            "'and'", "'or'", 
-                                                            "'not'", "'='", 
-                                                            "'<>'", "'>'", 
-                                                            "'<'", "'>='", 
-                                                            "'<='", "'if'", 
-                                                            "'else'", "'while'", 
-                                                            "'do'", "'repeat'", 
+                                                            null, "'+'", 
+                                                            "'-'", "'*'", 
+                                                            "'/'", null, 
+                                                            null, "'and'", 
+                                                            "'or'", "'not'", 
+                                                            "'='", "'<>'", 
+                                                            "'>'", "'<'", 
+                                                            "'>='", "'<='", 
+                                                            "'if'", "'else'", 
+                                                            "'while'", "'do'", 
+                                                            "'repeat'", 
                                                             "'until'", "'for'", 
                                                             "'from'", "'down'", 
                                                             "'to'", "'<-'", 
@@ -112,7 +120,9 @@ export default class PSCParser extends Parser {
                                                              "DEDENT", "WHITESPACE", 
                                                              "NEWLINE", 
                                                              "COMMENT", 
-                                                             "LPAREN", "RPAREN", 
+                                                             "COMMA", "LPAREN", 
+                                                             "RPAREN", "LSQUARE", 
+                                                             "RSQUARE", 
                                                              "SQUOTE", "DQUOTE", 
                                                              "STRING", "INTEGER", 
                                                              "FLOAT", "BOOLEAN", 
@@ -136,8 +146,9 @@ export default class PSCParser extends Parser {
 	public static readonly ruleNames: string[] = [
 		"program", "addOp", "mulOp", "expOp", "compOp", "expr", "orExpr", "notExpr", 
 		"andExpr", "compExpr", "addExpr", "mulExpr", "expExpr", "atom", "lits", 
-		"stmts", "stmt", "block", "ifStmt", "whileStmt", "doWhileStmt", "repeatUntilStmt", 
-		"forStmt", "asmStmt", "inputStmt", "outputStmt",
+		"intLits", "floatLits", "arrayLits", "stmts", "stmt", "block", "ifStmt", 
+		"whileStmt", "doWhileStmt", "repeatUntilStmt", "forStmt", "asmStmt", "inputStmt", 
+		"outputStmt",
 	];
 	public get grammarFileName(): string { return "PSCParser.g4"; }
 	public get literalNames(): (string | null)[] { return PSCParser.literalNames; }
@@ -161,17 +172,17 @@ export default class PSCParser extends Parser {
 		try {
 			this.enterOuterAlt(localctx, 1);
 			{
-			this.state = 53;
+			this.state = 59;
 			this._errHandler.sync(this);
 			_la = this._input.LA(1);
-			if ((((_la) & ~0x1F) === 0 && ((1 << _la) & 2688597072) !== 0) || ((((_la - 32)) & ~0x1F) === 0 && ((1 << (_la - 32)) & 1803) !== 0)) {
+			if ((((_la) & ~0x1F) === 0 && ((1 << _la) & 33940112) !== 0) || ((((_la - 32)) & ~0x1F) === 0 && ((1 << (_la - 32)) & 14429) !== 0)) {
 				{
-				this.state = 52;
+				this.state = 58;
 				this.stmts();
 				}
 			}
 
-			this.state = 55;
+			this.state = 61;
 			this.match(PSCParser.EOF);
 			}
 		}
@@ -197,9 +208,9 @@ export default class PSCParser extends Parser {
 		try {
 			this.enterOuterAlt(localctx, 1);
 			{
-			this.state = 57;
+			this.state = 63;
 			_la = this._input.LA(1);
-			if(!(_la===14 || _la===15)) {
+			if(!(_la===17 || _la===18)) {
 			this._errHandler.recoverInline(this);
 			}
 			else {
@@ -230,9 +241,9 @@ export default class PSCParser extends Parser {
 		try {
 			this.enterOuterAlt(localctx, 1);
 			{
-			this.state = 59;
+			this.state = 65;
 			_la = this._input.LA(1);
-			if(!((((_la) & ~0x1F) === 0 && ((1 << _la) & 458752) !== 0))) {
+			if(!((((_la) & ~0x1F) === 0 && ((1 << _la) & 3670016) !== 0))) {
 			this._errHandler.recoverInline(this);
 			}
 			else {
@@ -262,7 +273,7 @@ export default class PSCParser extends Parser {
 		try {
 			this.enterOuterAlt(localctx, 1);
 			{
-			this.state = 61;
+			this.state = 67;
 			this.match(PSCParser.EXPONENT);
 			}
 		}
@@ -288,9 +299,9 @@ export default class PSCParser extends Parser {
 		try {
 			this.enterOuterAlt(localctx, 1);
 			{
-			this.state = 63;
+			this.state = 69;
 			_la = this._input.LA(1);
-			if(!((((_la) & ~0x1F) === 0 && ((1 << _la) & 528482304) !== 0))) {
+			if(!((((_la) & ~0x1F) === 0 && ((1 << _la) & 4227858432) !== 0))) {
 			this._errHandler.recoverInline(this);
 			}
 			else {
@@ -320,7 +331,7 @@ export default class PSCParser extends Parser {
 		try {
 			this.enterOuterAlt(localctx, 1);
 			{
-			this.state = 65;
+			this.state = 71;
 			this.orExpr();
 			}
 		}
@@ -346,21 +357,21 @@ export default class PSCParser extends Parser {
 		try {
 			this.enterOuterAlt(localctx, 1);
 			{
-			this.state = 67;
+			this.state = 73;
 			this.andExpr();
-			this.state = 72;
+			this.state = 78;
 			this._errHandler.sync(this);
 			_la = this._input.LA(1);
-			while (_la===21) {
+			while (_la===24) {
 				{
 				{
-				this.state = 68;
+				this.state = 74;
 				this.match(PSCParser.OR);
-				this.state = 69;
+				this.state = 75;
 				this.andExpr();
 				}
 				}
-				this.state = 74;
+				this.state = 80;
 				this._errHandler.sync(this);
 				_la = this._input.LA(1);
 			}
@@ -388,21 +399,21 @@ export default class PSCParser extends Parser {
 		try {
 			this.enterOuterAlt(localctx, 1);
 			{
-			this.state = 78;
+			this.state = 84;
 			this._errHandler.sync(this);
 			_la = this._input.LA(1);
-			while (_la===22) {
+			while (_la===25) {
 				{
 				{
-				this.state = 75;
+				this.state = 81;
 				this.match(PSCParser.NOT);
 				}
 				}
-				this.state = 80;
+				this.state = 86;
 				this._errHandler.sync(this);
 				_la = this._input.LA(1);
 			}
-			this.state = 81;
+			this.state = 87;
 			this.compExpr();
 			}
 		}
@@ -428,21 +439,21 @@ export default class PSCParser extends Parser {
 		try {
 			this.enterOuterAlt(localctx, 1);
 			{
-			this.state = 83;
+			this.state = 89;
 			this.notExpr();
-			this.state = 88;
+			this.state = 94;
 			this._errHandler.sync(this);
 			_la = this._input.LA(1);
-			while (_la===20) {
+			while (_la===23) {
 				{
 				{
-				this.state = 84;
+				this.state = 90;
 				this.match(PSCParser.AND);
-				this.state = 85;
+				this.state = 91;
 				this.notExpr();
 				}
 				}
-				this.state = 90;
+				this.state = 96;
 				this._errHandler.sync(this);
 				_la = this._input.LA(1);
 			}
@@ -470,21 +481,21 @@ export default class PSCParser extends Parser {
 		try {
 			this.enterOuterAlt(localctx, 1);
 			{
-			this.state = 91;
-			this.addExpr();
 			this.state = 97;
+			this.addExpr();
+			this.state = 103;
 			this._errHandler.sync(this);
 			_la = this._input.LA(1);
-			while ((((_la) & ~0x1F) === 0 && ((1 << _la) & 528482304) !== 0)) {
+			while ((((_la) & ~0x1F) === 0 && ((1 << _la) & 4227858432) !== 0)) {
 				{
 				{
-				this.state = 92;
+				this.state = 98;
 				this.compOp();
-				this.state = 93;
+				this.state = 99;
 				this.addExpr();
 				}
 				}
-				this.state = 99;
+				this.state = 105;
 				this._errHandler.sync(this);
 				_la = this._input.LA(1);
 			}
@@ -512,23 +523,23 @@ export default class PSCParser extends Parser {
 			let _alt: number;
 			this.enterOuterAlt(localctx, 1);
 			{
-			this.state = 100;
-			this.mulExpr();
 			this.state = 106;
+			this.mulExpr();
+			this.state = 112;
 			this._errHandler.sync(this);
 			_alt = this._interp.adaptivePredict(this._input, 5, this._ctx);
 			while (_alt !== 2 && _alt !== ATN.INVALID_ALT_NUMBER) {
 				if (_alt === 1) {
 					{
 					{
-					this.state = 101;
+					this.state = 107;
 					this.addOp();
-					this.state = 102;
+					this.state = 108;
 					this.mulExpr();
 					}
 					}
 				}
-				this.state = 108;
+				this.state = 114;
 				this._errHandler.sync(this);
 				_alt = this._interp.adaptivePredict(this._input, 5, this._ctx);
 			}
@@ -556,21 +567,21 @@ export default class PSCParser extends Parser {
 		try {
 			this.enterOuterAlt(localctx, 1);
 			{
-			this.state = 109;
-			this.expExpr();
 			this.state = 115;
+			this.expExpr();
+			this.state = 121;
 			this._errHandler.sync(this);
 			_la = this._input.LA(1);
-			while ((((_la) & ~0x1F) === 0 && ((1 << _la) & 458752) !== 0)) {
+			while ((((_la) & ~0x1F) === 0 && ((1 << _la) & 3670016) !== 0)) {
 				{
 				{
-				this.state = 110;
+				this.state = 116;
 				this.mulOp();
-				this.state = 111;
+				this.state = 117;
 				this.expExpr();
 				}
 				}
-				this.state = 117;
+				this.state = 123;
 				this._errHandler.sync(this);
 				_la = this._input.LA(1);
 			}
@@ -598,21 +609,21 @@ export default class PSCParser extends Parser {
 		try {
 			this.enterOuterAlt(localctx, 1);
 			{
-			this.state = 118;
-			this.atom();
 			this.state = 124;
+			this.atom();
+			this.state = 130;
 			this._errHandler.sync(this);
 			_la = this._input.LA(1);
-			while (_la===19) {
+			while (_la===22) {
 				{
 				{
-				this.state = 119;
+				this.state = 125;
 				this.expOp();
-				this.state = 120;
+				this.state = 126;
 				this.atom();
 				}
 				}
-				this.state = 126;
+				this.state = 132;
 				this._errHandler.sync(this);
 				_la = this._input.LA(1);
 			}
@@ -637,35 +648,36 @@ export default class PSCParser extends Parser {
 		let localctx: AtomContext = new AtomContext(this, this._ctx, this.state);
 		this.enterRule(localctx, 26, PSCParser.RULE_atom);
 		try {
-			this.state = 133;
+			this.state = 139;
 			this._errHandler.sync(this);
 			switch (this._input.LA(1)) {
-			case 10:
-			case 11:
-			case 12:
+			case 9:
 			case 13:
+			case 14:
 			case 15:
+			case 16:
+			case 18:
 				this.enterOuterAlt(localctx, 1);
 				{
-				this.state = 127;
+				this.state = 133;
 				this.lits();
 				}
 				break;
-			case 42:
+			case 45:
 				this.enterOuterAlt(localctx, 2);
 				{
-				this.state = 128;
+				this.state = 134;
 				this.match(PSCParser.ID);
 				}
 				break;
-			case 6:
+			case 7:
 				this.enterOuterAlt(localctx, 3);
 				{
-				this.state = 129;
+				this.state = 135;
 				this.match(PSCParser.LPAREN);
-				this.state = 130;
+				this.state = 136;
 				this.expr();
-				this.state = 131;
+				this.state = 137;
 				this.match(PSCParser.RPAREN);
 				}
 				break;
@@ -691,56 +703,42 @@ export default class PSCParser extends Parser {
 	public lits(): LitsContext {
 		let localctx: LitsContext = new LitsContext(this, this._ctx, this.state);
 		this.enterRule(localctx, 28, PSCParser.RULE_lits);
-		let _la: number;
 		try {
-			this.state = 145;
+			this.state = 146;
 			this._errHandler.sync(this);
-			switch ( this._interp.adaptivePredict(this._input, 11, this._ctx) ) {
+			switch ( this._interp.adaptivePredict(this._input, 9, this._ctx) ) {
 			case 1:
 				this.enterOuterAlt(localctx, 1);
 				{
-				this.state = 136;
-				this._errHandler.sync(this);
-				_la = this._input.LA(1);
-				if (_la===15) {
-					{
-					this.state = 135;
-					this.match(PSCParser.MINUS);
-					}
-				}
-
-				this.state = 138;
-				this.match(PSCParser.INTEGER);
+				this.state = 141;
+				this.intLits();
 				}
 				break;
 			case 2:
 				this.enterOuterAlt(localctx, 2);
 				{
-				this.state = 140;
-				this._errHandler.sync(this);
-				_la = this._input.LA(1);
-				if (_la===15) {
-					{
-					this.state = 139;
-					this.match(PSCParser.MINUS);
-					}
-				}
-
 				this.state = 142;
-				this.match(PSCParser.FLOAT);
+				this.floatLits();
 				}
 				break;
 			case 3:
 				this.enterOuterAlt(localctx, 3);
 				{
 				this.state = 143;
-				this.match(PSCParser.STRING);
+				this.arrayLits();
 				}
 				break;
 			case 4:
 				this.enterOuterAlt(localctx, 4);
 				{
 				this.state = 144;
+				this.match(PSCParser.STRING);
+				}
+				break;
+			case 5:
+				this.enterOuterAlt(localctx, 5);
+				{
+				this.state = 145;
 				this.match(PSCParser.BOOLEAN);
 				}
 				break;
@@ -761,46 +759,173 @@ export default class PSCParser extends Parser {
 		return localctx;
 	}
 	// @RuleVersion(0)
+	public intLits(): IntLitsContext {
+		let localctx: IntLitsContext = new IntLitsContext(this, this._ctx, this.state);
+		this.enterRule(localctx, 30, PSCParser.RULE_intLits);
+		let _la: number;
+		try {
+			this.enterOuterAlt(localctx, 1);
+			{
+			this.state = 149;
+			this._errHandler.sync(this);
+			_la = this._input.LA(1);
+			if (_la===18) {
+				{
+				this.state = 148;
+				this.match(PSCParser.MINUS);
+				}
+			}
+
+			this.state = 151;
+			this.match(PSCParser.INTEGER);
+			}
+		}
+		catch (re) {
+			if (re instanceof RecognitionException) {
+				localctx.exception = re;
+				this._errHandler.reportError(this, re);
+				this._errHandler.recover(this, re);
+			} else {
+				throw re;
+			}
+		}
+		finally {
+			this.exitRule();
+		}
+		return localctx;
+	}
+	// @RuleVersion(0)
+	public floatLits(): FloatLitsContext {
+		let localctx: FloatLitsContext = new FloatLitsContext(this, this._ctx, this.state);
+		this.enterRule(localctx, 32, PSCParser.RULE_floatLits);
+		let _la: number;
+		try {
+			this.enterOuterAlt(localctx, 1);
+			{
+			this.state = 154;
+			this._errHandler.sync(this);
+			_la = this._input.LA(1);
+			if (_la===18) {
+				{
+				this.state = 153;
+				this.match(PSCParser.MINUS);
+				}
+			}
+
+			this.state = 156;
+			this.match(PSCParser.FLOAT);
+			}
+		}
+		catch (re) {
+			if (re instanceof RecognitionException) {
+				localctx.exception = re;
+				this._errHandler.reportError(this, re);
+				this._errHandler.recover(this, re);
+			} else {
+				throw re;
+			}
+		}
+		finally {
+			this.exitRule();
+		}
+		return localctx;
+	}
+	// @RuleVersion(0)
+	public arrayLits(): ArrayLitsContext {
+		let localctx: ArrayLitsContext = new ArrayLitsContext(this, this._ctx, this.state);
+		this.enterRule(localctx, 34, PSCParser.RULE_arrayLits);
+		let _la: number;
+		try {
+			this.enterOuterAlt(localctx, 1);
+			{
+			this.state = 158;
+			this.match(PSCParser.LSQUARE);
+			this.state = 167;
+			this._errHandler.sync(this);
+			_la = this._input.LA(1);
+			if ((((_la) & ~0x1F) === 0 && ((1 << _la) & 33940096) !== 0) || _la===45) {
+				{
+				this.state = 159;
+				this.expr();
+				this.state = 164;
+				this._errHandler.sync(this);
+				_la = this._input.LA(1);
+				while (_la===6) {
+					{
+					{
+					this.state = 160;
+					this.match(PSCParser.COMMA);
+					this.state = 161;
+					this.expr();
+					}
+					}
+					this.state = 166;
+					this._errHandler.sync(this);
+					_la = this._input.LA(1);
+				}
+				}
+			}
+
+			this.state = 169;
+			this.match(PSCParser.RSQUARE);
+			}
+		}
+		catch (re) {
+			if (re instanceof RecognitionException) {
+				localctx.exception = re;
+				this._errHandler.reportError(this, re);
+				this._errHandler.recover(this, re);
+			} else {
+				throw re;
+			}
+		}
+		finally {
+			this.exitRule();
+		}
+		return localctx;
+	}
+	// @RuleVersion(0)
 	public stmts(): StmtsContext {
 		let localctx: StmtsContext = new StmtsContext(this, this._ctx, this.state);
-		this.enterRule(localctx, 30, PSCParser.RULE_stmts);
+		this.enterRule(localctx, 36, PSCParser.RULE_stmts);
 		try {
 			let _alt: number;
 			this.enterOuterAlt(localctx, 1);
 			{
-			this.state = 149;
+			this.state = 173;
 			this._errHandler.sync(this);
 			_alt = 1;
 			do {
 				switch (_alt) {
 				case 1:
 					{
-					this.state = 149;
+					this.state = 173;
 					this._errHandler.sync(this);
 					switch (this._input.LA(1)) {
-					case 6:
-					case 10:
-					case 11:
-					case 12:
+					case 7:
+					case 9:
 					case 13:
+					case 14:
 					case 15:
-					case 22:
-					case 29:
-					case 31:
+					case 16:
+					case 18:
+					case 25:
 					case 32:
-					case 33:
+					case 34:
 					case 35:
-					case 40:
-					case 41:
-					case 42:
+					case 36:
+					case 38:
+					case 43:
+					case 44:
+					case 45:
 						{
-						this.state = 147;
+						this.state = 171;
 						this.stmt();
 						}
 						break;
 					case 4:
 						{
-						this.state = 148;
+						this.state = 172;
 						this.match(PSCParser.NEWLINE);
 						}
 						break;
@@ -812,9 +937,9 @@ export default class PSCParser extends Parser {
 				default:
 					throw new NoViableAltException(this);
 				}
-				this.state = 151;
+				this.state = 175;
 				this._errHandler.sync(this);
-				_alt = this._interp.adaptivePredict(this._input, 13, this._ctx);
+				_alt = this._interp.adaptivePredict(this._input, 15, this._ctx);
 			} while (_alt !== 2 && _alt !== ATN.INVALID_ALT_NUMBER);
 			}
 		}
@@ -835,71 +960,71 @@ export default class PSCParser extends Parser {
 	// @RuleVersion(0)
 	public stmt(): StmtContext {
 		let localctx: StmtContext = new StmtContext(this, this._ctx, this.state);
-		this.enterRule(localctx, 32, PSCParser.RULE_stmt);
+		this.enterRule(localctx, 38, PSCParser.RULE_stmt);
 		try {
-			this.state = 162;
+			this.state = 186;
 			this._errHandler.sync(this);
-			switch ( this._interp.adaptivePredict(this._input, 14, this._ctx) ) {
+			switch ( this._interp.adaptivePredict(this._input, 16, this._ctx) ) {
 			case 1:
 				this.enterOuterAlt(localctx, 1);
 				{
-				this.state = 153;
+				this.state = 177;
 				this.expr();
 				}
 				break;
 			case 2:
 				this.enterOuterAlt(localctx, 2);
 				{
-				this.state = 154;
+				this.state = 178;
 				this.ifStmt();
 				}
 				break;
 			case 3:
 				this.enterOuterAlt(localctx, 3);
 				{
-				this.state = 155;
+				this.state = 179;
 				this.whileStmt();
 				}
 				break;
 			case 4:
 				this.enterOuterAlt(localctx, 4);
 				{
-				this.state = 156;
+				this.state = 180;
 				this.doWhileStmt();
 				}
 				break;
 			case 5:
 				this.enterOuterAlt(localctx, 5);
 				{
-				this.state = 157;
+				this.state = 181;
 				this.repeatUntilStmt();
 				}
 				break;
 			case 6:
 				this.enterOuterAlt(localctx, 6);
 				{
-				this.state = 158;
+				this.state = 182;
 				this.forStmt();
 				}
 				break;
 			case 7:
 				this.enterOuterAlt(localctx, 7);
 				{
-				this.state = 159;
+				this.state = 183;
 				this.asmStmt();
 				}
 				break;
 			case 8:
 				this.enterOuterAlt(localctx, 8);
 				{
-				this.state = 160;
+				this.state = 184;
 				this.inputStmt();
 				}
 				break;
 			case 9:
 				this.enterOuterAlt(localctx, 9);
 				{
-				this.state = 161;
+				this.state = 185;
 				this.outputStmt();
 				}
 				break;
@@ -922,28 +1047,28 @@ export default class PSCParser extends Parser {
 	// @RuleVersion(0)
 	public block(): BlockContext {
 		let localctx: BlockContext = new BlockContext(this, this._ctx, this.state);
-		this.enterRule(localctx, 34, PSCParser.RULE_block);
+		this.enterRule(localctx, 40, PSCParser.RULE_block);
 		let _la: number;
 		try {
 			this.enterOuterAlt(localctx, 1);
 			{
-			this.state = 164;
+			this.state = 188;
 			this.match(PSCParser.NEWLINE);
-			this.state = 165;
+			this.state = 189;
 			this.match(PSCParser.INDENT);
-			this.state = 166;
+			this.state = 190;
 			this.stmts();
-			this.state = 168;
+			this.state = 192;
 			this._errHandler.sync(this);
 			_la = this._input.LA(1);
 			if (_la===4) {
 				{
-				this.state = 167;
+				this.state = 191;
 				this.match(PSCParser.NEWLINE);
 				}
 			}
 
-			this.state = 170;
+			this.state = 194;
 			this.match(PSCParser.DEDENT);
 			}
 		}
@@ -964,32 +1089,32 @@ export default class PSCParser extends Parser {
 	// @RuleVersion(0)
 	public ifStmt(): IfStmtContext {
 		let localctx: IfStmtContext = new IfStmtContext(this, this._ctx, this.state);
-		this.enterRule(localctx, 36, PSCParser.RULE_ifStmt);
+		this.enterRule(localctx, 42, PSCParser.RULE_ifStmt);
 		try {
 			this.enterOuterAlt(localctx, 1);
 			{
-			this.state = 172;
+			this.state = 196;
 			this.match(PSCParser.IF);
-			this.state = 173;
+			this.state = 197;
 			this.expr();
-			this.state = 174;
+			this.state = 198;
 			this.block();
-			this.state = 179;
+			this.state = 203;
 			this._errHandler.sync(this);
-			switch ( this._interp.adaptivePredict(this._input, 16, this._ctx) ) {
+			switch ( this._interp.adaptivePredict(this._input, 18, this._ctx) ) {
 			case 1:
 				{
-				this.state = 175;
+				this.state = 199;
 				this.match(PSCParser.ELSE);
-				this.state = 176;
+				this.state = 200;
 				this.ifStmt();
 				}
 				break;
 			case 2:
 				{
-				this.state = 177;
+				this.state = 201;
 				this.match(PSCParser.ELSE);
-				this.state = 178;
+				this.state = 202;
 				this.block();
 				}
 				break;
@@ -1013,15 +1138,15 @@ export default class PSCParser extends Parser {
 	// @RuleVersion(0)
 	public whileStmt(): WhileStmtContext {
 		let localctx: WhileStmtContext = new WhileStmtContext(this, this._ctx, this.state);
-		this.enterRule(localctx, 38, PSCParser.RULE_whileStmt);
+		this.enterRule(localctx, 44, PSCParser.RULE_whileStmt);
 		try {
 			this.enterOuterAlt(localctx, 1);
 			{
-			this.state = 181;
+			this.state = 205;
 			this.match(PSCParser.WHILE);
-			this.state = 182;
+			this.state = 206;
 			this.expr();
-			this.state = 183;
+			this.state = 207;
 			this.block();
 			}
 		}
@@ -1042,17 +1167,17 @@ export default class PSCParser extends Parser {
 	// @RuleVersion(0)
 	public doWhileStmt(): DoWhileStmtContext {
 		let localctx: DoWhileStmtContext = new DoWhileStmtContext(this, this._ctx, this.state);
-		this.enterRule(localctx, 40, PSCParser.RULE_doWhileStmt);
+		this.enterRule(localctx, 46, PSCParser.RULE_doWhileStmt);
 		try {
 			this.enterOuterAlt(localctx, 1);
 			{
-			this.state = 185;
+			this.state = 209;
 			this.match(PSCParser.DO);
-			this.state = 186;
+			this.state = 210;
 			this.block();
-			this.state = 187;
+			this.state = 211;
 			this.match(PSCParser.WHILE);
-			this.state = 188;
+			this.state = 212;
 			this.expr();
 			}
 		}
@@ -1073,17 +1198,17 @@ export default class PSCParser extends Parser {
 	// @RuleVersion(0)
 	public repeatUntilStmt(): RepeatUntilStmtContext {
 		let localctx: RepeatUntilStmtContext = new RepeatUntilStmtContext(this, this._ctx, this.state);
-		this.enterRule(localctx, 42, PSCParser.RULE_repeatUntilStmt);
+		this.enterRule(localctx, 48, PSCParser.RULE_repeatUntilStmt);
 		try {
 			this.enterOuterAlt(localctx, 1);
 			{
-			this.state = 190;
+			this.state = 214;
 			this.match(PSCParser.REPEAT);
-			this.state = 191;
+			this.state = 215;
 			this.block();
-			this.state = 192;
+			this.state = 216;
 			this.match(PSCParser.UNTIL);
-			this.state = 193;
+			this.state = 217;
 			this.expr();
 			}
 		}
@@ -1104,34 +1229,34 @@ export default class PSCParser extends Parser {
 	// @RuleVersion(0)
 	public forStmt(): ForStmtContext {
 		let localctx: ForStmtContext = new ForStmtContext(this, this._ctx, this.state);
-		this.enterRule(localctx, 44, PSCParser.RULE_forStmt);
+		this.enterRule(localctx, 50, PSCParser.RULE_forStmt);
 		let _la: number;
 		try {
 			this.enterOuterAlt(localctx, 1);
 			{
-			this.state = 195;
+			this.state = 219;
 			this.match(PSCParser.FOR);
-			this.state = 196;
+			this.state = 220;
 			this.match(PSCParser.ID);
-			this.state = 197;
+			this.state = 221;
 			this.match(PSCParser.FROM);
-			this.state = 198;
+			this.state = 222;
 			this.expr();
-			this.state = 200;
+			this.state = 224;
 			this._errHandler.sync(this);
 			_la = this._input.LA(1);
-			if (_la===37) {
+			if (_la===40) {
 				{
-				this.state = 199;
+				this.state = 223;
 				this.match(PSCParser.DOWN);
 				}
 			}
 
-			this.state = 202;
+			this.state = 226;
 			this.match(PSCParser.TO);
-			this.state = 203;
+			this.state = 227;
 			this.expr();
-			this.state = 204;
+			this.state = 228;
 			this.block();
 			}
 		}
@@ -1152,15 +1277,15 @@ export default class PSCParser extends Parser {
 	// @RuleVersion(0)
 	public asmStmt(): AsmStmtContext {
 		let localctx: AsmStmtContext = new AsmStmtContext(this, this._ctx, this.state);
-		this.enterRule(localctx, 46, PSCParser.RULE_asmStmt);
+		this.enterRule(localctx, 52, PSCParser.RULE_asmStmt);
 		try {
 			this.enterOuterAlt(localctx, 1);
 			{
-			this.state = 206;
+			this.state = 230;
 			this.match(PSCParser.ID);
-			this.state = 207;
+			this.state = 231;
 			this.match(PSCParser.ASSIGN);
-			this.state = 208;
+			this.state = 232;
 			this.expr();
 			}
 		}
@@ -1181,13 +1306,13 @@ export default class PSCParser extends Parser {
 	// @RuleVersion(0)
 	public inputStmt(): InputStmtContext {
 		let localctx: InputStmtContext = new InputStmtContext(this, this._ctx, this.state);
-		this.enterRule(localctx, 48, PSCParser.RULE_inputStmt);
+		this.enterRule(localctx, 54, PSCParser.RULE_inputStmt);
 		try {
 			this.enterOuterAlt(localctx, 1);
 			{
-			this.state = 210;
+			this.state = 234;
 			this.match(PSCParser.INPUT);
-			this.state = 211;
+			this.state = 235;
 			this.match(PSCParser.ID);
 			}
 		}
@@ -1208,13 +1333,13 @@ export default class PSCParser extends Parser {
 	// @RuleVersion(0)
 	public outputStmt(): OutputStmtContext {
 		let localctx: OutputStmtContext = new OutputStmtContext(this, this._ctx, this.state);
-		this.enterRule(localctx, 50, PSCParser.RULE_outputStmt);
+		this.enterRule(localctx, 56, PSCParser.RULE_outputStmt);
 		try {
 			this.enterOuterAlt(localctx, 1);
 			{
-			this.state = 213;
+			this.state = 237;
 			this.match(PSCParser.OUTPUT);
-			this.state = 214;
+			this.state = 238;
 			this.expr();
 			}
 		}
@@ -1233,73 +1358,81 @@ export default class PSCParser extends Parser {
 		return localctx;
 	}
 
-	public static readonly _serializedATN: number[] = [4,1,42,217,2,0,7,0,2,
+	public static readonly _serializedATN: number[] = [4,1,45,241,2,0,7,0,2,
 	1,7,1,2,2,7,2,2,3,7,3,2,4,7,4,2,5,7,5,2,6,7,6,2,7,7,7,2,8,7,8,2,9,7,9,2,
 	10,7,10,2,11,7,11,2,12,7,12,2,13,7,13,2,14,7,14,2,15,7,15,2,16,7,16,2,17,
 	7,17,2,18,7,18,2,19,7,19,2,20,7,20,2,21,7,21,2,22,7,22,2,23,7,23,2,24,7,
-	24,2,25,7,25,1,0,3,0,54,8,0,1,0,1,0,1,1,1,1,1,2,1,2,1,3,1,3,1,4,1,4,1,5,
-	1,5,1,6,1,6,1,6,5,6,71,8,6,10,6,12,6,74,9,6,1,7,5,7,77,8,7,10,7,12,7,80,
-	9,7,1,7,1,7,1,8,1,8,1,8,5,8,87,8,8,10,8,12,8,90,9,8,1,9,1,9,1,9,1,9,5,9,
-	96,8,9,10,9,12,9,99,9,9,1,10,1,10,1,10,1,10,5,10,105,8,10,10,10,12,10,108,
-	9,10,1,11,1,11,1,11,1,11,5,11,114,8,11,10,11,12,11,117,9,11,1,12,1,12,1,
-	12,1,12,5,12,123,8,12,10,12,12,12,126,9,12,1,13,1,13,1,13,1,13,1,13,1,13,
-	3,13,134,8,13,1,14,3,14,137,8,14,1,14,1,14,3,14,141,8,14,1,14,1,14,1,14,
-	3,14,146,8,14,1,15,1,15,4,15,150,8,15,11,15,12,15,151,1,16,1,16,1,16,1,
-	16,1,16,1,16,1,16,1,16,1,16,3,16,163,8,16,1,17,1,17,1,17,1,17,3,17,169,
-	8,17,1,17,1,17,1,18,1,18,1,18,1,18,1,18,1,18,1,18,3,18,180,8,18,1,19,1,
-	19,1,19,1,19,1,20,1,20,1,20,1,20,1,20,1,21,1,21,1,21,1,21,1,21,1,22,1,22,
-	1,22,1,22,1,22,3,22,201,8,22,1,22,1,22,1,22,1,22,1,23,1,23,1,23,1,23,1,
-	24,1,24,1,24,1,25,1,25,1,25,1,25,0,0,26,0,2,4,6,8,10,12,14,16,18,20,22,
-	24,26,28,30,32,34,36,38,40,42,44,46,48,50,0,3,1,0,14,15,1,0,16,18,1,0,23,
-	28,219,0,53,1,0,0,0,2,57,1,0,0,0,4,59,1,0,0,0,6,61,1,0,0,0,8,63,1,0,0,0,
-	10,65,1,0,0,0,12,67,1,0,0,0,14,78,1,0,0,0,16,83,1,0,0,0,18,91,1,0,0,0,20,
-	100,1,0,0,0,22,109,1,0,0,0,24,118,1,0,0,0,26,133,1,0,0,0,28,145,1,0,0,0,
-	30,149,1,0,0,0,32,162,1,0,0,0,34,164,1,0,0,0,36,172,1,0,0,0,38,181,1,0,
-	0,0,40,185,1,0,0,0,42,190,1,0,0,0,44,195,1,0,0,0,46,206,1,0,0,0,48,210,
-	1,0,0,0,50,213,1,0,0,0,52,54,3,30,15,0,53,52,1,0,0,0,53,54,1,0,0,0,54,55,
-	1,0,0,0,55,56,5,0,0,1,56,1,1,0,0,0,57,58,7,0,0,0,58,3,1,0,0,0,59,60,7,1,
-	0,0,60,5,1,0,0,0,61,62,5,19,0,0,62,7,1,0,0,0,63,64,7,2,0,0,64,9,1,0,0,0,
-	65,66,3,12,6,0,66,11,1,0,0,0,67,72,3,16,8,0,68,69,5,21,0,0,69,71,3,16,8,
-	0,70,68,1,0,0,0,71,74,1,0,0,0,72,70,1,0,0,0,72,73,1,0,0,0,73,13,1,0,0,0,
-	74,72,1,0,0,0,75,77,5,22,0,0,76,75,1,0,0,0,77,80,1,0,0,0,78,76,1,0,0,0,
-	78,79,1,0,0,0,79,81,1,0,0,0,80,78,1,0,0,0,81,82,3,18,9,0,82,15,1,0,0,0,
-	83,88,3,14,7,0,84,85,5,20,0,0,85,87,3,14,7,0,86,84,1,0,0,0,87,90,1,0,0,
-	0,88,86,1,0,0,0,88,89,1,0,0,0,89,17,1,0,0,0,90,88,1,0,0,0,91,97,3,20,10,
-	0,92,93,3,8,4,0,93,94,3,20,10,0,94,96,1,0,0,0,95,92,1,0,0,0,96,99,1,0,0,
-	0,97,95,1,0,0,0,97,98,1,0,0,0,98,19,1,0,0,0,99,97,1,0,0,0,100,106,3,22,
-	11,0,101,102,3,2,1,0,102,103,3,22,11,0,103,105,1,0,0,0,104,101,1,0,0,0,
-	105,108,1,0,0,0,106,104,1,0,0,0,106,107,1,0,0,0,107,21,1,0,0,0,108,106,
-	1,0,0,0,109,115,3,24,12,0,110,111,3,4,2,0,111,112,3,24,12,0,112,114,1,0,
-	0,0,113,110,1,0,0,0,114,117,1,0,0,0,115,113,1,0,0,0,115,116,1,0,0,0,116,
-	23,1,0,0,0,117,115,1,0,0,0,118,124,3,26,13,0,119,120,3,6,3,0,120,121,3,
-	26,13,0,121,123,1,0,0,0,122,119,1,0,0,0,123,126,1,0,0,0,124,122,1,0,0,0,
-	124,125,1,0,0,0,125,25,1,0,0,0,126,124,1,0,0,0,127,134,3,28,14,0,128,134,
-	5,42,0,0,129,130,5,6,0,0,130,131,3,10,5,0,131,132,5,7,0,0,132,134,1,0,0,
-	0,133,127,1,0,0,0,133,128,1,0,0,0,133,129,1,0,0,0,134,27,1,0,0,0,135,137,
-	5,15,0,0,136,135,1,0,0,0,136,137,1,0,0,0,137,138,1,0,0,0,138,146,5,11,0,
-	0,139,141,5,15,0,0,140,139,1,0,0,0,140,141,1,0,0,0,141,142,1,0,0,0,142,
-	146,5,12,0,0,143,146,5,10,0,0,144,146,5,13,0,0,145,136,1,0,0,0,145,140,
-	1,0,0,0,145,143,1,0,0,0,145,144,1,0,0,0,146,29,1,0,0,0,147,150,3,32,16,
-	0,148,150,5,4,0,0,149,147,1,0,0,0,149,148,1,0,0,0,150,151,1,0,0,0,151,149,
-	1,0,0,0,151,152,1,0,0,0,152,31,1,0,0,0,153,163,3,10,5,0,154,163,3,36,18,
-	0,155,163,3,38,19,0,156,163,3,40,20,0,157,163,3,42,21,0,158,163,3,44,22,
-	0,159,163,3,46,23,0,160,163,3,48,24,0,161,163,3,50,25,0,162,153,1,0,0,0,
-	162,154,1,0,0,0,162,155,1,0,0,0,162,156,1,0,0,0,162,157,1,0,0,0,162,158,
-	1,0,0,0,162,159,1,0,0,0,162,160,1,0,0,0,162,161,1,0,0,0,163,33,1,0,0,0,
-	164,165,5,4,0,0,165,166,5,1,0,0,166,168,3,30,15,0,167,169,5,4,0,0,168,167,
-	1,0,0,0,168,169,1,0,0,0,169,170,1,0,0,0,170,171,5,2,0,0,171,35,1,0,0,0,
-	172,173,5,29,0,0,173,174,3,10,5,0,174,179,3,34,17,0,175,176,5,30,0,0,176,
-	180,3,36,18,0,177,178,5,30,0,0,178,180,3,34,17,0,179,175,1,0,0,0,179,177,
-	1,0,0,0,179,180,1,0,0,0,180,37,1,0,0,0,181,182,5,31,0,0,182,183,3,10,5,
-	0,183,184,3,34,17,0,184,39,1,0,0,0,185,186,5,32,0,0,186,187,3,34,17,0,187,
-	188,5,31,0,0,188,189,3,10,5,0,189,41,1,0,0,0,190,191,5,33,0,0,191,192,3,
-	34,17,0,192,193,5,34,0,0,193,194,3,10,5,0,194,43,1,0,0,0,195,196,5,35,0,
-	0,196,197,5,42,0,0,197,198,5,36,0,0,198,200,3,10,5,0,199,201,5,37,0,0,200,
-	199,1,0,0,0,200,201,1,0,0,0,201,202,1,0,0,0,202,203,5,38,0,0,203,204,3,
-	10,5,0,204,205,3,34,17,0,205,45,1,0,0,0,206,207,5,42,0,0,207,208,5,39,0,
-	0,208,209,3,10,5,0,209,47,1,0,0,0,210,211,5,40,0,0,211,212,5,42,0,0,212,
-	49,1,0,0,0,213,214,5,41,0,0,214,215,3,10,5,0,215,51,1,0,0,0,18,53,72,78,
-	88,97,106,115,124,133,136,140,145,149,151,162,168,179,200];
+	24,2,25,7,25,2,26,7,26,2,27,7,27,2,28,7,28,1,0,3,0,60,8,0,1,0,1,0,1,1,1,
+	1,1,2,1,2,1,3,1,3,1,4,1,4,1,5,1,5,1,6,1,6,1,6,5,6,77,8,6,10,6,12,6,80,9,
+	6,1,7,5,7,83,8,7,10,7,12,7,86,9,7,1,7,1,7,1,8,1,8,1,8,5,8,93,8,8,10,8,12,
+	8,96,9,8,1,9,1,9,1,9,1,9,5,9,102,8,9,10,9,12,9,105,9,9,1,10,1,10,1,10,1,
+	10,5,10,111,8,10,10,10,12,10,114,9,10,1,11,1,11,1,11,1,11,5,11,120,8,11,
+	10,11,12,11,123,9,11,1,12,1,12,1,12,1,12,5,12,129,8,12,10,12,12,12,132,
+	9,12,1,13,1,13,1,13,1,13,1,13,1,13,3,13,140,8,13,1,14,1,14,1,14,1,14,1,
+	14,3,14,147,8,14,1,15,3,15,150,8,15,1,15,1,15,1,16,3,16,155,8,16,1,16,1,
+	16,1,17,1,17,1,17,1,17,5,17,163,8,17,10,17,12,17,166,9,17,3,17,168,8,17,
+	1,17,1,17,1,18,1,18,4,18,174,8,18,11,18,12,18,175,1,19,1,19,1,19,1,19,1,
+	19,1,19,1,19,1,19,1,19,3,19,187,8,19,1,20,1,20,1,20,1,20,3,20,193,8,20,
+	1,20,1,20,1,21,1,21,1,21,1,21,1,21,1,21,1,21,3,21,204,8,21,1,22,1,22,1,
+	22,1,22,1,23,1,23,1,23,1,23,1,23,1,24,1,24,1,24,1,24,1,24,1,25,1,25,1,25,
+	1,25,1,25,3,25,225,8,25,1,25,1,25,1,25,1,25,1,26,1,26,1,26,1,26,1,27,1,
+	27,1,27,1,28,1,28,1,28,1,28,0,0,29,0,2,4,6,8,10,12,14,16,18,20,22,24,26,
+	28,30,32,34,36,38,40,42,44,46,48,50,52,54,56,0,3,1,0,17,18,1,0,19,21,1,
+	0,26,31,243,0,59,1,0,0,0,2,63,1,0,0,0,4,65,1,0,0,0,6,67,1,0,0,0,8,69,1,
+	0,0,0,10,71,1,0,0,0,12,73,1,0,0,0,14,84,1,0,0,0,16,89,1,0,0,0,18,97,1,0,
+	0,0,20,106,1,0,0,0,22,115,1,0,0,0,24,124,1,0,0,0,26,139,1,0,0,0,28,146,
+	1,0,0,0,30,149,1,0,0,0,32,154,1,0,0,0,34,158,1,0,0,0,36,173,1,0,0,0,38,
+	186,1,0,0,0,40,188,1,0,0,0,42,196,1,0,0,0,44,205,1,0,0,0,46,209,1,0,0,0,
+	48,214,1,0,0,0,50,219,1,0,0,0,52,230,1,0,0,0,54,234,1,0,0,0,56,237,1,0,
+	0,0,58,60,3,36,18,0,59,58,1,0,0,0,59,60,1,0,0,0,60,61,1,0,0,0,61,62,5,0,
+	0,1,62,1,1,0,0,0,63,64,7,0,0,0,64,3,1,0,0,0,65,66,7,1,0,0,66,5,1,0,0,0,
+	67,68,5,22,0,0,68,7,1,0,0,0,69,70,7,2,0,0,70,9,1,0,0,0,71,72,3,12,6,0,72,
+	11,1,0,0,0,73,78,3,16,8,0,74,75,5,24,0,0,75,77,3,16,8,0,76,74,1,0,0,0,77,
+	80,1,0,0,0,78,76,1,0,0,0,78,79,1,0,0,0,79,13,1,0,0,0,80,78,1,0,0,0,81,83,
+	5,25,0,0,82,81,1,0,0,0,83,86,1,0,0,0,84,82,1,0,0,0,84,85,1,0,0,0,85,87,
+	1,0,0,0,86,84,1,0,0,0,87,88,3,18,9,0,88,15,1,0,0,0,89,94,3,14,7,0,90,91,
+	5,23,0,0,91,93,3,14,7,0,92,90,1,0,0,0,93,96,1,0,0,0,94,92,1,0,0,0,94,95,
+	1,0,0,0,95,17,1,0,0,0,96,94,1,0,0,0,97,103,3,20,10,0,98,99,3,8,4,0,99,100,
+	3,20,10,0,100,102,1,0,0,0,101,98,1,0,0,0,102,105,1,0,0,0,103,101,1,0,0,
+	0,103,104,1,0,0,0,104,19,1,0,0,0,105,103,1,0,0,0,106,112,3,22,11,0,107,
+	108,3,2,1,0,108,109,3,22,11,0,109,111,1,0,0,0,110,107,1,0,0,0,111,114,1,
+	0,0,0,112,110,1,0,0,0,112,113,1,0,0,0,113,21,1,0,0,0,114,112,1,0,0,0,115,
+	121,3,24,12,0,116,117,3,4,2,0,117,118,3,24,12,0,118,120,1,0,0,0,119,116,
+	1,0,0,0,120,123,1,0,0,0,121,119,1,0,0,0,121,122,1,0,0,0,122,23,1,0,0,0,
+	123,121,1,0,0,0,124,130,3,26,13,0,125,126,3,6,3,0,126,127,3,26,13,0,127,
+	129,1,0,0,0,128,125,1,0,0,0,129,132,1,0,0,0,130,128,1,0,0,0,130,131,1,0,
+	0,0,131,25,1,0,0,0,132,130,1,0,0,0,133,140,3,28,14,0,134,140,5,45,0,0,135,
+	136,5,7,0,0,136,137,3,10,5,0,137,138,5,8,0,0,138,140,1,0,0,0,139,133,1,
+	0,0,0,139,134,1,0,0,0,139,135,1,0,0,0,140,27,1,0,0,0,141,147,3,30,15,0,
+	142,147,3,32,16,0,143,147,3,34,17,0,144,147,5,13,0,0,145,147,5,16,0,0,146,
+	141,1,0,0,0,146,142,1,0,0,0,146,143,1,0,0,0,146,144,1,0,0,0,146,145,1,0,
+	0,0,147,29,1,0,0,0,148,150,5,18,0,0,149,148,1,0,0,0,149,150,1,0,0,0,150,
+	151,1,0,0,0,151,152,5,14,0,0,152,31,1,0,0,0,153,155,5,18,0,0,154,153,1,
+	0,0,0,154,155,1,0,0,0,155,156,1,0,0,0,156,157,5,15,0,0,157,33,1,0,0,0,158,
+	167,5,9,0,0,159,164,3,10,5,0,160,161,5,6,0,0,161,163,3,10,5,0,162,160,1,
+	0,0,0,163,166,1,0,0,0,164,162,1,0,0,0,164,165,1,0,0,0,165,168,1,0,0,0,166,
+	164,1,0,0,0,167,159,1,0,0,0,167,168,1,0,0,0,168,169,1,0,0,0,169,170,5,10,
+	0,0,170,35,1,0,0,0,171,174,3,38,19,0,172,174,5,4,0,0,173,171,1,0,0,0,173,
+	172,1,0,0,0,174,175,1,0,0,0,175,173,1,0,0,0,175,176,1,0,0,0,176,37,1,0,
+	0,0,177,187,3,10,5,0,178,187,3,42,21,0,179,187,3,44,22,0,180,187,3,46,23,
+	0,181,187,3,48,24,0,182,187,3,50,25,0,183,187,3,52,26,0,184,187,3,54,27,
+	0,185,187,3,56,28,0,186,177,1,0,0,0,186,178,1,0,0,0,186,179,1,0,0,0,186,
+	180,1,0,0,0,186,181,1,0,0,0,186,182,1,0,0,0,186,183,1,0,0,0,186,184,1,0,
+	0,0,186,185,1,0,0,0,187,39,1,0,0,0,188,189,5,4,0,0,189,190,5,1,0,0,190,
+	192,3,36,18,0,191,193,5,4,0,0,192,191,1,0,0,0,192,193,1,0,0,0,193,194,1,
+	0,0,0,194,195,5,2,0,0,195,41,1,0,0,0,196,197,5,32,0,0,197,198,3,10,5,0,
+	198,203,3,40,20,0,199,200,5,33,0,0,200,204,3,42,21,0,201,202,5,33,0,0,202,
+	204,3,40,20,0,203,199,1,0,0,0,203,201,1,0,0,0,203,204,1,0,0,0,204,43,1,
+	0,0,0,205,206,5,34,0,0,206,207,3,10,5,0,207,208,3,40,20,0,208,45,1,0,0,
+	0,209,210,5,35,0,0,210,211,3,40,20,0,211,212,5,34,0,0,212,213,3,10,5,0,
+	213,47,1,0,0,0,214,215,5,36,0,0,215,216,3,40,20,0,216,217,5,37,0,0,217,
+	218,3,10,5,0,218,49,1,0,0,0,219,220,5,38,0,0,220,221,5,45,0,0,221,222,5,
+	39,0,0,222,224,3,10,5,0,223,225,5,40,0,0,224,223,1,0,0,0,224,225,1,0,0,
+	0,225,226,1,0,0,0,226,227,5,41,0,0,227,228,3,10,5,0,228,229,3,40,20,0,229,
+	51,1,0,0,0,230,231,5,45,0,0,231,232,5,42,0,0,232,233,3,10,5,0,233,53,1,
+	0,0,0,234,235,5,43,0,0,235,236,5,45,0,0,236,55,1,0,0,0,237,238,5,44,0,0,
+	238,239,3,10,5,0,239,57,1,0,0,0,20,59,78,84,94,103,112,121,130,139,146,
+	149,154,164,167,173,175,186,192,203,224];
 
 	private static __ATN: ATN;
 	public static get _ATN(): ATN {
@@ -1727,14 +1860,14 @@ export class LitsContext extends ParserRuleContext {
 		super(parent, invokingState);
     	this.parser = parser;
 	}
-	public INTEGER(): TerminalNode {
-		return this.getToken(PSCParser.INTEGER, 0);
+	public intLits(): IntLitsContext {
+		return this.getTypedRuleContext(IntLitsContext, 0) as IntLitsContext;
 	}
-	public MINUS(): TerminalNode {
-		return this.getToken(PSCParser.MINUS, 0);
+	public floatLits(): FloatLitsContext {
+		return this.getTypedRuleContext(FloatLitsContext, 0) as FloatLitsContext;
 	}
-	public FLOAT(): TerminalNode {
-		return this.getToken(PSCParser.FLOAT, 0);
+	public arrayLits(): ArrayLitsContext {
+		return this.getTypedRuleContext(ArrayLitsContext, 0) as ArrayLitsContext;
 	}
 	public STRING(): TerminalNode {
 		return this.getToken(PSCParser.STRING, 0);
@@ -1749,6 +1882,93 @@ export class LitsContext extends ParserRuleContext {
 	public accept<Result>(visitor: PSCParserVisitor<Result>): Result {
 		if (visitor.visitLits) {
 			return visitor.visitLits(this);
+		} else {
+			return visitor.visitChildren(this);
+		}
+	}
+}
+
+
+export class IntLitsContext extends ParserRuleContext {
+	constructor(parser?: PSCParser, parent?: ParserRuleContext, invokingState?: number) {
+		super(parent, invokingState);
+    	this.parser = parser;
+	}
+	public INTEGER(): TerminalNode {
+		return this.getToken(PSCParser.INTEGER, 0);
+	}
+	public MINUS(): TerminalNode {
+		return this.getToken(PSCParser.MINUS, 0);
+	}
+    public get ruleIndex(): number {
+    	return PSCParser.RULE_intLits;
+	}
+	// @Override
+	public accept<Result>(visitor: PSCParserVisitor<Result>): Result {
+		if (visitor.visitIntLits) {
+			return visitor.visitIntLits(this);
+		} else {
+			return visitor.visitChildren(this);
+		}
+	}
+}
+
+
+export class FloatLitsContext extends ParserRuleContext {
+	constructor(parser?: PSCParser, parent?: ParserRuleContext, invokingState?: number) {
+		super(parent, invokingState);
+    	this.parser = parser;
+	}
+	public FLOAT(): TerminalNode {
+		return this.getToken(PSCParser.FLOAT, 0);
+	}
+	public MINUS(): TerminalNode {
+		return this.getToken(PSCParser.MINUS, 0);
+	}
+    public get ruleIndex(): number {
+    	return PSCParser.RULE_floatLits;
+	}
+	// @Override
+	public accept<Result>(visitor: PSCParserVisitor<Result>): Result {
+		if (visitor.visitFloatLits) {
+			return visitor.visitFloatLits(this);
+		} else {
+			return visitor.visitChildren(this);
+		}
+	}
+}
+
+
+export class ArrayLitsContext extends ParserRuleContext {
+	constructor(parser?: PSCParser, parent?: ParserRuleContext, invokingState?: number) {
+		super(parent, invokingState);
+    	this.parser = parser;
+	}
+	public LSQUARE(): TerminalNode {
+		return this.getToken(PSCParser.LSQUARE, 0);
+	}
+	public RSQUARE(): TerminalNode {
+		return this.getToken(PSCParser.RSQUARE, 0);
+	}
+	public expr_list(): ExprContext[] {
+		return this.getTypedRuleContexts(ExprContext) as ExprContext[];
+	}
+	public expr(i: number): ExprContext {
+		return this.getTypedRuleContext(ExprContext, i) as ExprContext;
+	}
+	public COMMA_list(): TerminalNode[] {
+	    	return this.getTokens(PSCParser.COMMA);
+	}
+	public COMMA(i: number): TerminalNode {
+		return this.getToken(PSCParser.COMMA, i);
+	}
+    public get ruleIndex(): number {
+    	return PSCParser.RULE_arrayLits;
+	}
+	// @Override
+	public accept<Result>(visitor: PSCParserVisitor<Result>): Result {
+		if (visitor.visitArrayLits) {
+			return visitor.visitArrayLits(this);
 		} else {
 			return visitor.visitChildren(this);
 		}
