@@ -1,14 +1,15 @@
 {
-	"dependencies": {
-		"antlr4": "^4.13.2"
-	},
-	"devDependencies": {
-		"@vitest/ui": "4.1.10",
-		"typescript": "^7.0.2",
-		"vitest": "^4.1.10"
-	},
-	"scripts": {
-		"test": "vitest",
-		"antlr": "antlr4 -Dlanguage=TypeScript -no-listener -visitor ./src/antlr/PSCLexer.g4 ./src/antlr/PSCParser.g4"
-	}
+  "dependencies": {
+    "antlr4": "^4.13.2"
+  },
+  "devDependencies": {
+    "@vitest/ui": "4.1.10",
+    "prettier": "3.9.6",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.10"
+  },
+  "scripts": {
+    "test": "vitest",
+    "antlr": "antlr4 -Dlanguage=TypeScript -no-listener -visitor ./src/antlr/PSCLexer.g4 ./src/antlr/PSCParser.g4"
+  }
 }
