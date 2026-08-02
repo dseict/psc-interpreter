@@ -90,6 +90,25 @@ describe("variables", () => {
   })
 })
 
+describe("operator precedence", () => {
+  test.for([
+    ["true or false and false", "true"],
+    ["false and false or true", "true"],
+    ["2 + 2 > 5", "false"],
+    ["2+4>2 or 9+9>2 and 9>1", "true"],
+    ["1+2*2+2", "7"],
+    ["2**4*2+2", "34"],
+    ["-2+-2*-10", "18"],
+    ["--2", "2"],
+    ["+-2", "-2"],
+    ["not false and not true", "false"],
+    ["not false and not true or not false", "true"],
+    ["not (false and true)", "true"],
+  ])("%s -> %s", ([a, b]) => {
+    expect(output(a!)).toBe(b)
+  })
+})
+
 describe("evaluate expression", () => {
   describe("should evaluate expression correctly", () => {
     test.for([
@@ -98,6 +117,7 @@ describe("evaluate expression", () => {
       [`2 * 2`, "4"],
       [`9 / 3`, "3"],
       [`2 ^ 4`, "16"],
+      [`2 ** 4`, "16"],
       [`19 % 4`, "3"],
       [`3/(19%(9+2))/2^(5-2*(4+7))%7+(2)`, `${3 / (19 % (9 + 2)) / 2 ** (5 - 2 * (4 + 7)) % 7 + (2)}`],
       ["true and true", "true"],
@@ -134,6 +154,16 @@ describe("evaluate expression", () => {
     ])("%s -> %s", ([a, b]) => {
       expect(output(a!)).toBe(b)
     })
+  })
+})
+
+describe("arrays", () => {
+  it("should assign array to variable", () => {
+    const code = [
+      "A <- [1, 2, 3]",
+      "output A"
+    ].join("\n")
+    expect(outputOf(code)).toStrictEqual(["[1,2,3]"])
   })
 })
 

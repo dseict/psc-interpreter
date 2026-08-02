@@ -1,6 +1,6 @@
 import { CharStream, CommonTokenStream, ErrorListener, ParserRuleContext, ParseTree, RuleNode, Token } from "antlr4";
 import PSCLexer from "./antlr/PSCLexer";
-import PSCParser, { AddExprContext, AndExprContext, ArrayLitsContext, AsmStmtContext, AtomContext, BlockContext, CompExprContext, DoWhileStmtContext, ExpExprContext, ExprContext, FloatLitsContext, ForStmtContext, IfStmtContext, InputStmtContext, IntLitsContext, LitsContext, MulExprContext, NotExprContext, OrExprContext, OutputStmtContext, ProgramContext, RepeatUntilStmtContext, StmtContext, StmtsContext, WhileStmtContext } from "./antlr/PSCParser";
+import PSCParser, { AddExprContext, AndExprContext, ArrayLitsContext, AsmStmtContext, AtomContext, BlockContext, CompExprContext, DoWhileStmtContext, ExpExprContext, ExprContext, FloatLitsContext, ForStmtContext, GroupExprContext, IfStmtContext, InputStmtContext, IntLitsContext, LitsContext, MulExprContext, NotExprContext, OrExprContext, OutputStmtContext, PrimaryExprContext, ProgramContext, RepeatUntilStmtContext, StmtContext, StmtsContext, UnaryExprContext, WhileStmtContext } from "./antlr/PSCParser";
 import PSCParserVisitor from "./antlr/PSCParserVisitor";
 import { AccessNonExistingVariableError, ConditionNotBooleanError, ForRangeNotNumberError, ForVariableReuseError, ImpossibleError, OperationValueTypeMismatchError } from "./error";
 export type InterpreterOptions = {
@@ -144,9 +144,9 @@ class PSCInterpreter extends PSCParserVisitor<any> {
   }
 
   override visitAndExpr = (ctx: AndExprContext): any => {
-    let result = smartCast(this.visit(ctx.notExpr(0)));
-    for (let i = 1; i < ctx.notExpr_list().length; i++) {
-      const right = smartCast(this.visit(ctx.notExpr(i)));
+    let result = smartCast(this.visit(ctx.compExpr(0)));
+    for (let i = 1; i < ctx.compExpr_list().length; i++) {
+      const right = smartCast(this.visit(ctx.compExpr(i)));
       const resultBool = typeof result == "boolean"
       const rightBool = typeof right == "boolean"
       if (!resultBool || !rightBool) {
@@ -156,15 +156,6 @@ class PSCInterpreter extends PSCParserVisitor<any> {
       result = result && right;
     }
     return result;
-  }
-
-  override visitNotExpr = (ctx: NotExprContext): any => {
-    const notCount = ctx.NOT_list().length;
-    const value = smartCast(this.visit(ctx.compExpr()));
-    if (typeof value !== 'boolean' && notCount > 0) {
-      throw new OperationValueTypeMismatchError(ctx, "NOT", "boolean", value);
-    }
-    return notCount % 2 === 0 ? value : !value;
   }
 
   override visitCompExpr = (ctx: CompExprContext): any => {
@@ -274,9 +265,9 @@ class PSCInterpreter extends PSCParserVisitor<any> {
   }
 
   override visitExpExpr = (ctx: ExpExprContext): any => {
-    let result = smartCast(this.visit(ctx.atom(0)));
-    for (let i = 1; i < ctx.atom_list().length; i++) {
-      const right = smartCast(this.visit(ctx.atom(i)));
+    let result = this.visit(ctx.unaryExpr(0))
+    for (let i = 1; i < ctx.unaryExpr_list().length; i++) {
+      const right = smartCast(this.visit(ctx.unaryExpr(i)));
       const resultNum = typeof result === 'number'
       const rightNum = typeof right === 'number'
       if (!resultNum || !rightNum) {
@@ -284,6 +275,7 @@ class PSCInterpreter extends PSCParserVisitor<any> {
       }
       const operator = ctx.expOp(i - 1).getText();
       switch (operator) {
+        case '**':
         case '^':
           result **= right;
           break;
@@ -294,14 +286,42 @@ class PSCInterpreter extends PSCParserVisitor<any> {
     return result;
   }
 
+  override visitUnaryExpr = (ctx: UnaryExprContext): any => {
+    const minusCount = ctx.MINUS_list().length;
+    const value = smartCast(this.visit(ctx.notExpr()));
+    if (typeof value !== 'number' && minusCount > 0) {
+      throw new OperationValueTypeMismatchError(ctx, "NOT", "boolean", value);
+    }
+    return minusCount % 2 === 0 ? value : -value;
+  }
+
+  override visitNotExpr = (ctx: NotExprContext): any => {
+    const notCount = ctx.NOT_list().length;
+    const value = smartCast(this.visit(ctx.primaryExpr()));
+    if (typeof value !== 'boolean' && notCount > 0) {
+      throw new OperationValueTypeMismatchError(ctx, "NOT", "boolean", value);
+    }
+    return notCount % 2 === 0 ? value : !value;
+  }
+
+  override visitPrimaryExpr = (ctx: PrimaryExprContext): any => {
+    return this.visit(ctx.groupExpr())
+  }
+
+  override visitGroupExpr = (ctx: GroupExprContext): any => {
+    if (ctx.expr()) {
+      return this.visit(ctx.expr())
+    } else if (ctx.atom()) {
+      return this.visit(ctx.atom())
+    }
+  }
+
   override visitAtom = (ctx: AtomContext): any => {
     if (ctx.lits()) {
       return this.visit(ctx.lits());
     } else if (ctx.ID()) {
       // Handle variable lookup here
       return this.readVariable(ctx.ID().getText());
-    } else if (ctx.expr()) {
-      return this.visit(ctx.expr());
     }
     throw new ImpossibleError(ctx, "Invalid atom");
   }

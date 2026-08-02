@@ -10,12 +10,15 @@ import { ExpOpContext } from "./PSCParser.js";
 import { CompOpContext } from "./PSCParser.js";
 import { ExprContext } from "./PSCParser.js";
 import { OrExprContext } from "./PSCParser.js";
-import { NotExprContext } from "./PSCParser.js";
 import { AndExprContext } from "./PSCParser.js";
 import { CompExprContext } from "./PSCParser.js";
 import { AddExprContext } from "./PSCParser.js";
 import { MulExprContext } from "./PSCParser.js";
 import { ExpExprContext } from "./PSCParser.js";
+import { UnaryExprContext } from "./PSCParser.js";
+import { NotExprContext } from "./PSCParser.js";
+import { PrimaryExprContext } from "./PSCParser.js";
+import { GroupExprContext } from "./PSCParser.js";
 import { AtomContext } from "./PSCParser.js";
 import { LitsContext } from "./PSCParser.js";
 import { IntLitsContext } from "./PSCParser.js";
@@ -85,12 +88,6 @@ export default class PSCParserVisitor<Result> extends ParseTreeVisitor<Result> {
 	 */
 	visitOrExpr?: (ctx: OrExprContext) => Result;
 	/**
-	 * Visit a parse tree produced by `PSCParser.notExpr`.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	visitNotExpr?: (ctx: NotExprContext) => Result;
-	/**
 	 * Visit a parse tree produced by `PSCParser.andExpr`.
 	 * @param ctx the parse tree
 	 * @return the visitor result
@@ -120,6 +117,30 @@ export default class PSCParserVisitor<Result> extends ParseTreeVisitor<Result> {
 	 * @return the visitor result
 	 */
 	visitExpExpr?: (ctx: ExpExprContext) => Result;
+	/**
+	 * Visit a parse tree produced by `PSCParser.unaryExpr`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitUnaryExpr?: (ctx: UnaryExprContext) => Result;
+	/**
+	 * Visit a parse tree produced by `PSCParser.notExpr`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitNotExpr?: (ctx: NotExprContext) => Result;
+	/**
+	 * Visit a parse tree produced by `PSCParser.primaryExpr`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitPrimaryExpr?: (ctx: PrimaryExprContext) => Result;
+	/**
+	 * Visit a parse tree produced by `PSCParser.groupExpr`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitGroupExpr?: (ctx: GroupExprContext) => Result;
 	/**
 	 * Visit a parse tree produced by `PSCParser.atom`.
 	 * @param ctx the parse tree

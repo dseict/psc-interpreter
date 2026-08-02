@@ -14,16 +14,18 @@ compOp: EQUAL | NEQUAL | GT | LT | GTEQ | LTEQ;
 
 expr: orExpr;
 orExpr: andExpr (OR andExpr)*;
-notExpr: NOT* compExpr;
-andExpr: notExpr (AND notExpr)*;
+andExpr: compExpr (AND compExpr)*;
 compExpr: addExpr (compOp addExpr)*;
 addExpr: mulExpr (addOp mulExpr)*;
 mulExpr: expExpr (mulOp expExpr)*;
-expExpr: atom (expOp atom)*;
-atom: lits | ID | LPAREN expr RPAREN;
+expExpr: unaryExpr (expOp unaryExpr)*;
+unaryExpr: (PLUS | MINUS)* notExpr;
+notExpr: NOT* primaryExpr;
+primaryExpr: groupExpr | primaryExpr LSQUARE expr RSQUARE;
+groupExpr: atom | (LPAREN expr RPAREN);
+atom: lits | ID;
 
 lits: intLits | floatLits | arrayLits | STRING | BOOLEAN;
-
 intLits: MINUS? INTEGER;
 floatLits: MINUS? FLOAT;
 arrayLits: LSQUARE (expr (COMMA expr)*)? RSQUARE;
