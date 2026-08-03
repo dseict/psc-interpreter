@@ -188,6 +188,10 @@ describe("arrays", () => {
     const code = ["A <- [1,2,3,4]", "output A[1]"].join("\n");
     expect(outputOf(code)).toStrictEqual(["1"]);
   });
+  it("should assign to an element of an array variable correctly", () => {
+    const code = ["A <- [1,2,3,4]", "A[2] <- 9", "output A"].join("\n");
+    expect(outputOf(code)).toStrictEqual(["[1,9,3,4]"]);
+  });
   describe("should throw for bad array indices", () => {
     test.for(["[0,2,3][0]", "[0,2,3][4]", "[0,2,3][-1]"])("%s", (c) => {
       expect(() => output(c)).toThrow(ArrayIndexOutOfBoundsError);
@@ -232,6 +236,14 @@ describe("arrays", () => {
       "2",
       "1",
     ]);
+  });
+  it("should create an array implicitly when assigning to an index", () => {
+    const code = ["A[2] <- 2", "output A"].join("\n");
+    expect(outputOf(code)).toStrictEqual(["[null,2]"]);
+  });
+  it("should extend an array implicitly when assigning to an index", () => {
+    const code = ["A <- [1,2]", "A[5] <- 5", "output A"].join("\n");
+    expect(outputOf(code)).toStrictEqual(["[1,2,null,null,5]"]);
   });
 });
 

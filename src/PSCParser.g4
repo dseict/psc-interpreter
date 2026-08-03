@@ -56,7 +56,7 @@ repeatUntilStmt: REPEAT block UNTIL expr;
 
 forStmt: FOR ID FROM expr DOWN? TO expr block;
 
-asmStmt: ID ASSIGN expr;
+asmStmt: ID (LSQUARE expr RSQUARE)? ASSIGN expr;
 
 // IO statements
 inputStmt: INPUT ID;

@@ -162,6 +162,8 @@ class PSCInterpreter extends PSCParserVisitor<any> {
       return value.toString();
     } else if (typeof value === "string") {
       return value;
+    } else if (value === null) {
+      return "null";
     }
     throw new ImpossibleError(
       this.currentCtx,
@@ -707,8 +709,36 @@ class PSCInterpreter extends PSCParserVisitor<any> {
 
   override visitAsmStmt = (ctx: AsmStmtContext): void => {
     const varName = ctx.ID().getText();
-    const value = this.visit(ctx.expr());
-    this.assignVariable(varName, value);
+    if (ctx.LSQUARE() && ctx.RSQUARE()) {
+      const index = this.visit(ctx.expr(0));
+      if (typeof index !== "number" || !Number.isInteger(index)) {
+        throw new ArrayIndexNotIntegerError(ctx, index);
+      }
+      let arr = [];
+      if (this.variableExists(varName)) {
+        arr = this.readVariable(varName);
+      }
+      // If the variable exists but is not an array, throw an error
+      if (!Array.isArray(arr)) {
+        throw new ArrayAccessNotArrayError(ctx, arr);
+      }
+      // If the index is less than 1, throw an error
+      if (index < 1) {
+        throw new ArrayIndexOutOfBoundsError(ctx, index, arr.length);
+      }
+      // Evaluate the value to be assigned
+      const value = this.visit(ctx.expr(1));
+      // Extend the array if the index is greater than the current length
+      while (arr.length < index) {
+        arr.push(null);
+      }
+      arr[index - 1] = value; // 1-based indexing
+      this.assignVariable(varName, arr);
+    } else {
+      // If not an array element assignment, just assign the value to the variable
+      const value = this.visit(ctx.expr(0));
+      this.assignVariable(varName, value);
+    }
   };
 
   override visitInputStmt = async (ctx: InputStmtContext): Promise<void> => {
