@@ -21,7 +21,7 @@ mulExpr: expExpr (mulOp expExpr)*;
 expExpr: unaryExpr (expOp unaryExpr)*;
 unaryExpr: (PLUS | MINUS)* notExpr;
 notExpr: NOT* primaryExpr;
-primaryExpr: groupExpr | primaryExpr LSQUARE expr RSQUARE;
+primaryExpr: groupExpr | primaryExpr LSQUARE expr (COMMA expr)* RSQUARE;
 groupExpr: atom | (LPAREN expr RPAREN);
 atom: lits | ID;
 
@@ -56,8 +56,10 @@ repeatUntilStmt: REPEAT block UNTIL expr;
 
 forStmt: FOR ID FROM expr DOWN? TO expr block;
 
-asmStmt: ID (LSQUARE expr RSQUARE)? ASSIGN expr;
+asmStmt: lvalue ASSIGN expr;
+
+lvalue: ID | lvalue LSQUARE expr (COMMA expr)* RSQUARE;
 
 // IO statements
-inputStmt: INPUT ID;
+inputStmt: INPUT lvalue;
 outputStmt: OUTPUT expr;

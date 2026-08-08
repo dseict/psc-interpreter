@@ -22,7 +22,7 @@ export default class PSCLexerBase extends Lexer {
   #onToken(token: Token): boolean {
     // console.log(`token: ${PSCLexer.symbolicNames[token.type]} '${token.text}'\n--`)
     switch (token.type) {
-      case PSCLexer.NEWLINE:
+      case PSCLexer.NEWLINE: {
         // NEWLINE token is followed by indentation spacings
         // Get the indentation level of the NEWLINE token
         const indent = this.text.replace(/\r?\n/g, "");
@@ -46,7 +46,8 @@ export default class PSCLexerBase extends Lexer {
           }
         }
         return true;
-      case PSCLexer.EOF:
+      }
+      case PSCLexer.EOF: {
         // If no more dedent needed, EOF gracefully
         if (this.indents.length == 0) {
           return true;
@@ -57,6 +58,7 @@ export default class PSCLexerBase extends Lexer {
         }
         this.pendingTokens.push(token); // Push the EOF token to the pending tokens
         return false; // Skip the current EOF token
+      }
     }
     return true;
   }

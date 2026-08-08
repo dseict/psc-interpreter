@@ -5,5 +5,6 @@ export default defineConfig({
     // Enable Jest-like global test APIs (describe, test, expect)
     globals: true,
     environment: "node",
+    watch: false,
   },
 });

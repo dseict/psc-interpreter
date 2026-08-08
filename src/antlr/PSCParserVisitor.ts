@@ -33,6 +33,7 @@ import { DoWhileStmtContext } from "./PSCParser.js";
 import { RepeatUntilStmtContext } from "./PSCParser.js";
 import { ForStmtContext } from "./PSCParser.js";
 import { AsmStmtContext } from "./PSCParser.js";
+import { LvalueContext } from "./PSCParser.js";
 import { InputStmtContext } from "./PSCParser.js";
 import { OutputStmtContext } from "./PSCParser.js";
 
@@ -225,6 +226,12 @@ export default class PSCParserVisitor<Result> extends ParseTreeVisitor<Result> {
 	 * @return the visitor result
 	 */
 	visitAsmStmt?: (ctx: AsmStmtContext) => Result;
+	/**
+	 * Visit a parse tree produced by `PSCParser.lvalue`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitLvalue?: (ctx: LvalueContext) => Result;
 	/**
 	 * Visit a parse tree produced by `PSCParser.inputStmt`.
 	 * @param ctx the parse tree

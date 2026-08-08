@@ -56,26 +56,13 @@ export class ForVariableReuseError extends Error {
   }
 }
 
-export class ArrayIndexOutOfBoundsError extends Error {
-  constructor(
-    ctx: ParserRuleContext | undefined,
-    index: number,
-    arrayLength: number,
-  ) {
+export class InvalidArrayIndexError extends Error {
+  constructor(ctx: ParserRuleContext | undefined, index: string) {
     super(
-      `Array index ${index} is out of bounds for array of length ${arrayLength}. ${ctx && generateLineColMessage(ctx)}`,
+      `Array index ${index} is invalid. ${ctx && generateLineColMessage(ctx)}`,
     );
   }
 }
-
-export class ArrayIndexNotIntegerError extends Error {
-  constructor(ctx: ParserRuleContext | undefined, got: string) {
-    super(
-      `Array index must be an integer, got ${got}. ${ctx && generateLineColMessage(ctx)}`,
-    );
-  }
-}
-
 export class ArrayAccessNotArrayError extends Error {
   constructor(ctx: ParserRuleContext | undefined, got: string) {
     super(
