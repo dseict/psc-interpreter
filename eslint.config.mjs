@@ -13,6 +13,12 @@ export default defineConfig({
   ignores: ["node_modules/**", "dist/**", "src/antlr/**", "vitest.config.ts"],
   rules: {
     "@typescript-eslint/no-floating-promises": "error",
-    "@typescript-eslint/no-explicit-any": "off",
+    "@typescript-eslint/no-unused-vars": [
+      "error",
+      {
+        vars: "all",
+        args: "none",
+      },
+    ],
   },
 });

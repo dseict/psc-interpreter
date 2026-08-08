@@ -126,11 +126,9 @@ describe("io statements", () => {
   });
   it("should input correctly", async () => {
     const code = ["input A", "output A"].join("\n");
-    const inputs = ["1", "2"];
-    let i = 0;
     await interpret(code, {
-      inputFunction: () => Promise.resolve(inputs[i++]),
-      outputFunction: (s) => expect(s).toBe(inputs[i - 1]),
+      inputFunction: () => Promise.resolve("1"),
+      outputFunction: (s) => expect(s).toBe("1"),
     });
   });
 });
@@ -574,18 +572,16 @@ describe("interpreter options", () => {
 
   it("should be able to change output function", async () => {
     const code = ["output 1", "output 2"].join("\n");
-    const out: any[] = [];
+    const out: string[] = [];
     await interpret(code, { outputFunction: (s) => out.push(s) });
     expect(out).toStrictEqual(["1", "2"]);
   });
 
   it("should be able to change input function", async () => {
     const code = ["input A", "output A"].join("\n");
-    const inputs = ["1", "2"];
-    let i = 0;
     await interpret(code, {
-      inputFunction: () => Promise.resolve(inputs[i++]),
-      outputFunction: (s) => expect(s).toBe(inputs[i - 1]),
+      inputFunction: () => Promise.resolve("1"),
+      outputFunction: (s) => expect(s).toBe("1"),
     });
   });
 
