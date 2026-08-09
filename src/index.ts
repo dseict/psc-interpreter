@@ -34,6 +34,7 @@ import PSCParser, {
   RepeatUntilStmtContext,
   StmtContext,
   StmtsContext,
+  SubprogramContext,
   UnaryExprContext,
   WhileStmtContext,
 } from "./antlr/PSCParser";
@@ -47,6 +48,7 @@ import {
   ImpossibleError,
   InvalidArrayIndexError,
   OperationValueTypeMismatchError,
+  UnmatchedParameterError,
 } from "./error";
 export type InterpreterOptions = {
   strictVariableScope: boolean;
@@ -93,7 +95,10 @@ function smartCast(value: AllowedTypes): AllowedTypes {
   return value; // Return as is if no casting is possible
 }
 
-type AllowedTypes = string | number | boolean | AllowedTypes[] | undefined;
+type Function = (params: AllowedTypes[]) => Promise<AllowedTypes | void>;
+
+type AllowedTypes =
+  string | number | boolean | AllowedTypes[] | Function | undefined;
 
 class PSCInterpreter extends PSCParserVisitor<
   Promise<AllowedTypes | Ref | void>
@@ -184,6 +189,9 @@ class PSCInterpreter extends PSCParserVisitor<
   }
 
   override visitProgram = async (ctx: ProgramContext): Promise<void> => {
+    for (const subprogramCtx of ctx.subprogram_list()) {
+      await this.visitSubprogram(subprogramCtx);
+    }
     await this.visitStmts(ctx.stmts());
   };
 
@@ -477,6 +485,22 @@ class PSCInterpreter extends PSCParserVisitor<
   override visitPrimaryExpr = async (
     ctx: PrimaryExprContext,
   ): Promise<AllowedTypes> => {
+    if (ctx.LPAREN() && ctx.RPAREN()) {
+      const args = await Promise.all(
+        ctx.expr_list().map((expr) => this.visitExpr(expr)),
+      );
+      const func = await this.visitPrimaryExpr(ctx.primaryExpr());
+      if (typeof func !== "function") {
+        throw new OperationValueTypeMismatchError(
+          ctx,
+          "Function call",
+          "function",
+          this.asString(ctx, func),
+        );
+      }
+      // Function returns undefined if no return value is specified
+      return (await func(args)) ?? undefined;
+    }
     if (ctx.LSQUARE() && ctx.RSQUARE()) {
       const indicesRaw = await Promise.all(
         ctx.expr_list().map((expr) => this.visitExpr(expr)),
@@ -895,6 +919,35 @@ class PSCInterpreter extends PSCParserVisitor<
   override visitOutputStmt = async (ctx: OutputStmtContext): Promise<void> => {
     const val = this.asString(ctx, await this.visitExpr(ctx.expr()));
     this.options.outputFunction?.(val);
+  };
+
+  override visitSubprogram = async (ctx: SubprogramContext): Promise<void> => {
+    const name = ctx.ID(0).getText();
+    const paramNames =
+      ctx
+        .ID_list()
+        ?.slice(1, ctx.ID_list().length)
+        .map((id) => id.getText()) ?? [];
+
+    // Subprogram is stored as a variable in the current variable stack
+    this.assignVariable(ctx, name, async (params: AllowedTypes[]) => {
+      if (params.length !== paramNames.length) {
+        throw new UnmatchedParameterError(
+          ctx,
+          name,
+          paramNames.length,
+          params.length,
+        );
+      }
+      // Create a new variable stack for the subprogram execution ignoring strictVariableScope option.
+      // This ensures that variables defined within the subprogram do not interfere with those in the calling context.
+      this.newVariableStack(ctx);
+      for (let i = 0; i < paramNames.length; i++) {
+        this.assignVariable(ctx, paramNames[i]!, params[i]!);
+      }
+      await this.visitBlock(ctx.block());
+      this.popVariableStack(ctx);
+    });
   };
 }
 

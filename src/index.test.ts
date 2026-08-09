@@ -552,6 +552,41 @@ describe("execute control flow statements", () => {
   });
 });
 
+describe("subprograms", () => {
+  it("should be able to define and call subprograms", async () => {
+    const code = ["subprogram A(x)", "  output x+1", "A(1)", "A(2)"].join("\n");
+    expect(await outputOf(code)).toStrictEqual(["2", "3"]);
+  });
+  it("should be able to define and call subprograms with multiple parameters", async () => {
+    const code = [
+      "subprogram A(x, y)",
+      "  output x + y",
+      "A(1, 2)",
+      "A(2, 3)",
+    ].join("\n");
+    expect(await outputOf(code)).toStrictEqual(["3", "5"]);
+  });
+  it("should throw if calling subprogram with wrong number of parameters", async () => {
+    const code = ["subprogram A(x, y)", "  output x + y", "A(1)"].join("\n");
+    await expect(() => running(code)).rejects.toThrow(
+      "Subprogram A expects 2 parameters, but got 1",
+    );
+  });
+  it("should assign subprogram to variable", async () => {
+    const code = [
+      "subprogram A(x)",
+      "  output x+1",
+      "subprogram A2(x)",
+      "  output x+2",
+      "B[1] <- A",
+      "B[2] <- A2",
+      "B[1](1)",
+      "B[2](2)",
+    ].join("\n");
+    expect(await outputOf(code)).toStrictEqual(["2", "4"]);
+  });
+});
+
 describe("error message", () => {
   it("should show correct error line col", async () => {
     const code = ["1", "2", "33333333", "44", "output ABC + 1", "4444"].join(

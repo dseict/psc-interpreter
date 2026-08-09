@@ -4,3 +4,4 @@
 !.prettierrc
 node_modules/
 dist/
+src/antlr/

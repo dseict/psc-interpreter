@@ -79,8 +79,8 @@ ASSIGN: '<-';
 INPUT: 'input';
 OUTPUT: 'output';
 
-// Identifier
-ID: [a-z_] [a-z_0-9]*;
-
 // Subprogram
 SUBPROGRAM: 'subprogram' | 'module';
+
+// Identifier
+ID: [a-z_] [a-z_0-9]*;

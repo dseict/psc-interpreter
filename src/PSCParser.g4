@@ -3,7 +3,7 @@ options {
 	tokenVocab = PSCLexer;
 }
 
-program: stmts? EOF;
+program: subprogram* stmts? EOF;
 
 addOp: PLUS | MINUS;
 mulOp: MULTIPLY | DIVIDE | MODULO;
@@ -21,7 +21,7 @@ mulExpr: expExpr (mulOp expExpr)*;
 expExpr: unaryExpr (expOp unaryExpr)*;
 unaryExpr: (PLUS | MINUS)* notExpr;
 notExpr: NOT* primaryExpr;
-primaryExpr: groupExpr | primaryExpr LSQUARE expr (COMMA expr)* RSQUARE;
+primaryExpr: groupExpr | primaryExpr LSQUARE expr (COMMA expr)* RSQUARE | primaryExpr LPAREN (expr (COMMA expr)*)? RPAREN;
 groupExpr: atom | (LPAREN expr RPAREN);
 atom: lits | ID;
 

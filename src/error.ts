@@ -71,6 +71,19 @@ export class ArrayAccessNotArrayError extends Error {
   }
 }
 
+export class UnmatchedParameterError extends Error {
+  constructor(
+    ctx: ParserRuleContext | undefined,
+    name: string,
+    expectedParams: number,
+    gotParams: number,
+  ) {
+    super(
+      `Subprogram ${name} expects ${expectedParams} parameters, but got ${gotParams}. ${ctx && generateLineColMessage(ctx)}`,
+    );
+  }
+}
+
 export class ImpossibleError extends Error {
   constructor(ctx: ParserRuleContext | undefined, message: string) {
     super(
