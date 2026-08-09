@@ -36,6 +36,7 @@ import { AsmStmtContext } from "./PSCParser.js";
 import { LvalueContext } from "./PSCParser.js";
 import { InputStmtContext } from "./PSCParser.js";
 import { OutputStmtContext } from "./PSCParser.js";
+import { SubprogramContext } from "./PSCParser.js";
 
 
 /**
@@ -244,5 +245,11 @@ export default class PSCParserVisitor<Result> extends ParseTreeVisitor<Result> {
 	 * @return the visitor result
 	 */
 	visitOutputStmt?: (ctx: OutputStmtContext) => Result;
+	/**
+	 * Visit a parse tree produced by `PSCParser.subprogram`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitSubprogram?: (ctx: SubprogramContext) => Result;
 }
 

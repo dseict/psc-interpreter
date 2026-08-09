@@ -811,6 +811,7 @@ class PSCInterpreter extends PSCParserVisitor<
       return {
         get: () => {
           const leftArr = leftRef.get();
+          // Returns undefined if the left-hand side is undefined, to allow for implicit array creation
           if (leftArr === undefined) {
             return undefined;
           }

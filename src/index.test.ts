@@ -357,6 +357,11 @@ describe("2D arrays", () => {
       ),
     ).toStrictEqual(["[1,[,,9],9]"]);
   });
+  it("should able to use mix of comma and bracket notation to access 2D array", async () => {
+    expect(
+      await outputOf(["A[1,2][2][3,1] <- 'abc'", "output A"].join("\n")),
+    ).toStrictEqual(["[[,[,[,,[abc]]]]]"]);
+  });
 });
 
 describe("execute control flow statements", () => {

@@ -63,3 +63,6 @@ lvalue: ID | lvalue LSQUARE expr (COMMA expr)* RSQUARE;
 // IO statements
 inputStmt: INPUT lvalue;
 outputStmt: OUTPUT expr;
+
+// Subprogram
+subprogram: SUBPROGRAM ID LPAREN (ID (COMMA ID)*)? RPAREN block;
