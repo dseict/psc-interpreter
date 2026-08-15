@@ -11,8 +11,8 @@ tokens {
 }
 
 WHITESPACE: (' ' | '\t')+ -> skip;
-NEWLINE: '\r'? '\n' (' ' | '\t')*;
-COMMENT: ('#' | '//') ~[\r\n]*;
+NEWLINE: '\r'? '\n' (' ')*;
+COMMENT: ('#' | '//') ~[\r\n]* -> skip;
 COMMA: ',';
 
 // Brackets
@@ -26,10 +26,11 @@ RSQUARE: ']';
 SQUOTE: '\'';
 DQUOTE: '"';
 STRING: (SQUOTE .*? SQUOTE | DQUOTE .*? DQUOTE);
+NULL: 'null';
 
 fragment DIGIT: [0-9];
 INTEGER: DIGIT+;
-FLOAT: DIGIT* '.' DIGIT+;
+FLOAT: (DIGIT+ '.' DIGIT*) | (DIGIT* '.' DIGIT+);
 
 BOOLEAN: 'true' | 'false';
 
@@ -81,6 +82,8 @@ OUTPUT: 'output';
 
 // Subprogram
 SUBPROGRAM: 'subprogram' | 'module';
+
+RETURN: 'return';
 
 // Identifier
 ID: [a-z_] [a-z_0-9]*;

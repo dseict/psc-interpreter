@@ -1,5 +1,6 @@
 import { CharStream, CommonToken, Lexer, Token } from "antlr4";
-import PSCLexer from "./antlr/PSCLexer";
+import PSCLexer from "./_antlr/PSCLexer";
+import { PSCSyntaxError } from "./error";
 
 export default class PSCLexerBase extends Lexer {
   indents: number[] = [];
@@ -12,6 +13,7 @@ export default class PSCLexerBase extends Lexer {
   override nextToken(): Token {
     const t = this.pendingTokens.shift() ?? super.nextToken();
     if (this.#onToken(t)) {
+      // console.log(`token: ${PSCLexer.symbolicNames[t.type]} '${t.text}'\n--`);
       return t;
     } else {
       return this.nextToken();
@@ -20,19 +22,24 @@ export default class PSCLexerBase extends Lexer {
 
   // Return true if the token should be emitted, false if it should be skipped
   #onToken(token: Token): boolean {
-    // console.log(`token: ${PSCLexer.symbolicNames[token.type]} '${token.text}'\n--`)
     switch (token.type) {
       case PSCLexer.NEWLINE: {
         // NEWLINE token is followed by indentation spacings
         // Get the indentation level of the NEWLINE token
         const indent = this.text.replace(/\r?\n/g, "");
-        const indentLevel = calculateIndentation(indent);
+        const indentLevel = calculateIndentation(
+          token.line,
+          token.column,
+          indent,
+        );
         const lastIndentLevel = this.indents[this.indents.length - 1] ?? 0; // if stack is empty, indent level = 0
         if (indentLevel > lastIndentLevel) {
           // Only allow indenting by one level at a time
           if (indentLevel - lastIndentLevel != 1) {
-            throw new Error(
-              `indentation level changed by more than one: ${lastIndentLevel} -> ${indentLevel} at line ${token.line}`,
+            throw new PSCSyntaxError(
+              token.line,
+              token.column,
+              `indentation level changed by more than one: ${lastIndentLevel} -> ${indentLevel}`,
             );
           }
           // Emits an INDENT token and push the new indentation level onto the stack
@@ -44,6 +51,10 @@ export default class PSCLexerBase extends Lexer {
             this.pendingTokens.push(this.#makeToken(PSCLexer.DEDENT));
             this.indents.pop();
           }
+          // Create a NEWLINE token to be emitted after the DEDENT tokens
+          this.pendingTokens.push(this.#makeToken(PSCLexer.NEWLINE));
+          // and skip the current NEWLINE token
+          return false;
         }
         return true;
       }
@@ -77,7 +88,11 @@ export default class PSCLexerBase extends Lexer {
   }
 }
 
-function calculateIndentation(whitespace: string): number {
+function calculateIndentation(
+  line: number,
+  column: number,
+  whitespace: string,
+): number {
   let level = 0;
   for (let i = 0; i < whitespace.length; i++) {
     switch (whitespace[i]) {
@@ -86,16 +101,15 @@ function calculateIndentation(whitespace: string): number {
           i++;
           level++;
         } else {
-          throw new Error(
+          throw new PSCSyntaxError(
+            line,
+            column + i,
             `expected two consecutive spaces for indentation, but found one at index ${i}`,
           );
         }
         break;
-      case "\t":
-        level++;
-        break;
       default:
-        throw new Error(`indentation invalid`);
+        throw new PSCSyntaxError(line, column, `indentation invalid`);
     }
   }
   return level;

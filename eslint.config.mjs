@@ -10,7 +10,13 @@ export default defineConfig({
     },
   },
   files: ["**/*.{js,ts}"],
-  ignores: ["node_modules/**", "dist/**", "src/antlr/**", "vitest.config.ts"],
+  ignores: [
+    "./node_modules/**",
+    "./dist/**",
+    "./coverage/**",
+    "./src/_antlr/**",
+    "./vitest.config.ts",
+  ],
   rules: {
     "@typescript-eslint/no-floating-promises": "error",
     "@typescript-eslint/no-unused-vars": [

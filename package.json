@@ -4,6 +4,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@vitest/coverage-v8": "4.1.10",
     "@vitest/ui": "4.1.10",
     "eslint": "^10.8.1",
     "prettier": "3.9.6",
@@ -14,7 +15,7 @@
   "scripts": {
     "clean": "rm -r -f dist && rm -r -f src/antlr",
     "test": "vitest",
-    "antlr": "cd src && rm -r -f ./antlr && antlr4 -o antlr -Dlanguage=TypeScript -no-listener -visitor ./PSCLexer.g4 ./PSCParser.g4 && node --eval \"fs.writeFileSync('antlr/PSCLexer.ts', fs.readFileSync('antlr/PSCLexer.ts', 'utf-8').replace('./PSCLexerBase.js', '../PSCLexerBase.js'))\"",
+    "antlr": "cd src && rm -r -f ./antlr && antlr4 -o _antlr -Dlanguage=TypeScript -no-listener -visitor ./PSCLexer.g4 ./PSCParser.g4 && node --eval \"fs.writeFileSync('_antlr/PSCLexer.ts', fs.readFileSync('_antlr/PSCLexer.ts', 'utf-8').replace('./PSCLexerBase.js', '../PSCLexerBase.js'))\"",
     "format": "prettier . --write",
     "lint": "eslint .",
     "verify": "pnpm format && pnpm lint && pnpm test"

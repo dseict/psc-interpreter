@@ -5,7 +5,7 @@ import {
   ParserRuleContext,
   Token,
 } from "antlr4";
-import PSCLexer from "./antlr/PSCLexer";
+import PSCLexer from "./_antlr/PSCLexer";
 import PSCParser, {
   AddExprContext,
   AndExprContext,
@@ -32,24 +32,27 @@ import PSCParser, {
   PrimaryExprContext,
   ProgramContext,
   RepeatUntilStmtContext,
+  ReturnStmtContext,
   StmtContext,
   StmtsContext,
   SubprogramContext,
   UnaryExprContext,
   WhileStmtContext,
-} from "./antlr/PSCParser";
-import PSCParserVisitor from "./antlr/PSCParserVisitor";
+} from "./_antlr/PSCParser";
+import PSCParserVisitor from "./_antlr/PSCParserVisitor";
 import {
   AccessNonExistingVariableError,
   ArrayAccessNotArrayError,
   ConditionNotBooleanError,
-  ForRangeNotNumberError,
+  ForRangeNotIntegerError,
   ForVariableReuseError,
   ImpossibleError,
   InvalidArrayIndexError,
   OperationValueTypeMismatchError,
-  UnmatchedParameterError,
+  PSCSyntaxError,
+  UnmatchedArgumentsError,
 } from "./error";
+
 export type InterpreterOptions = {
   strictVariableScope: boolean;
   arrayStartIndex: number;
@@ -63,11 +66,12 @@ export async function interpret(
 ): Promise<void> {
   // Parse the code
   const lexer = new PSCLexer(new CharStream(code));
+  lexer.removeErrorListeners();
+  lexer.addErrorListener(new PSCErrorListener());
   const parser = new PSCParser(new CommonTokenStream(lexer));
   parser.removeErrorListeners(); // Remove default error listeners
   parser.addErrorListener(new PSCErrorListener());
   const tree = parser.program();
-
   // Execute the code
   const interpreter = new PSCInterpreter({
     strictVariableScope: false,
@@ -77,13 +81,8 @@ export async function interpret(
   await interpreter.visit(tree);
 }
 
-function smartCast(value: AllowedTypes): AllowedTypes {
+function stringSmartCast(value: AllowedTypes): AllowedTypes {
   if (typeof value === "string") {
-    // Try to cast to number
-    const numValue = Number(value);
-    if (!isNaN(numValue)) {
-      return numValue;
-    }
     // Try to cast to boolean
     if (value.toLowerCase() === "true") {
       return true;
@@ -91,20 +90,35 @@ function smartCast(value: AllowedTypes): AllowedTypes {
     if (value.toLowerCase() === "false") {
       return false;
     }
+    if (value.toLowerCase() === "null") {
+      return null;
+    }
+    // Handle ridiculous edge cases for JS built-in casting v_v
+    if (value.trim() === "" || !/^-?\d*(\.\d+)?$/.test(value)) {
+      return value; // Return as is
+    }
+    // Try to cast to number
+    const numValue = Number(value);
+    if (!isNaN(numValue)) {
+      return numValue;
+    }
   }
   return value; // Return as is if no casting is possible
 }
 
-type Function = (params: AllowedTypes[]) => Promise<AllowedTypes | void>;
+type Function = (params: AllowedTypes[]) => Promise<AllowedTypes>;
 
 type AllowedTypes =
-  string | number | boolean | AllowedTypes[] | Function | undefined;
+  string | number | boolean | AllowedTypes[] | null | Function | undefined;
 
 class PSCInterpreter extends PSCParserVisitor<
   Promise<AllowedTypes | Ref | void>
 > {
-  variableStack: Record<string, AllowedTypes>[] = [{}]; // Stack of variable scopes
   options: InterpreterOptions;
+  // Stack of variable scopes
+  variableStack: Record<string, AllowedTypes>[] = [{}];
+  // Current return value, undefined means currently not in returning state
+  currentReturn: AllowedTypes | undefined = undefined;
 
   constructor(options: InterpreterOptions) {
     super();
@@ -170,6 +184,20 @@ class PSCInterpreter extends PSCParserVisitor<
     this.variableStack.pop();
   }
 
+  initiateReturn(value: AllowedTypes): void {
+    this.currentReturn = value;
+  }
+
+  isReturning(): boolean {
+    return this.currentReturn !== undefined;
+  }
+
+  terminateReturn(): AllowedTypes {
+    const ret = this.currentReturn;
+    this.currentReturn = undefined;
+    return ret;
+  }
+
   asString(ctx: ParserRuleContext, value: AllowedTypes): string {
     if (Array.isArray(value)) {
       return `[${value.map((v) => this.asString(ctx, v)).join(",")}]`;
@@ -178,14 +206,32 @@ class PSCInterpreter extends PSCParserVisitor<
     } else if (typeof value === "number") {
       return value.toString();
     } else if (typeof value === "string") {
-      return value;
+      return `"` + value + `"`; // Wrap string in quotes
     } else if (value === undefined) {
       return "";
+    } else if (value === null) {
+      return "null";
+    } else if (value instanceof Function) {
+      return "[Function]";
     }
     throw new ImpossibleError(
       ctx,
       `Cannot convert value of type ${typeof value} to string.`,
     );
+  }
+
+  normalizeArrayIndexOrThrow(
+    ctx: ParserRuleContext,
+    index: AllowedTypes,
+  ): number {
+    if (
+      typeof index !== "number" ||
+      !Number.isInteger(index - this.options.arrayStartIndex) ||
+      index - this.options.arrayStartIndex < 0
+    ) {
+      throw new InvalidArrayIndexError(ctx, this.asString(ctx, index));
+    }
+    return index - this.options.arrayStartIndex;
   }
 
   override visitProgram = async (ctx: ProgramContext): Promise<void> => {
@@ -201,9 +247,9 @@ class PSCInterpreter extends PSCParserVisitor<
   };
 
   override visitOrExpr = async (ctx: OrExprContext): Promise<AllowedTypes> => {
-    let result = smartCast(await this.visitAndExpr(ctx.andExpr(0)));
+    let result = stringSmartCast(await this.visitAndExpr(ctx.andExpr(0)));
     for (let i = 1; i < ctx.andExpr_list().length; i++) {
-      const right = smartCast(await this.visitAndExpr(ctx.andExpr(i)));
+      const right = stringSmartCast(await this.visitAndExpr(ctx.andExpr(i)));
       const resultBool = typeof result == "boolean";
       const rightBool = typeof right == "boolean";
       if (!resultBool || !rightBool) {
@@ -222,9 +268,9 @@ class PSCInterpreter extends PSCParserVisitor<
   override visitAndExpr = async (
     ctx: AndExprContext,
   ): Promise<AllowedTypes> => {
-    let result = smartCast(await this.visitCompExpr(ctx.compExpr(0)));
+    let result = stringSmartCast(await this.visitCompExpr(ctx.compExpr(0)));
     for (let i = 1; i < ctx.compExpr_list().length; i++) {
-      const right = smartCast(await this.visitCompExpr(ctx.compExpr(i)));
+      const right = stringSmartCast(await this.visitCompExpr(ctx.compExpr(i)));
       const resultBool = typeof result == "boolean";
       const rightBool = typeof right == "boolean";
       if (!resultBool || !rightBool) {
@@ -244,9 +290,9 @@ class PSCInterpreter extends PSCParserVisitor<
   override visitCompExpr = async (
     ctx: CompExprContext,
   ): Promise<AllowedTypes> => {
-    let result = smartCast(await this.visitAddExpr(ctx.addExpr(0)));
+    let result = stringSmartCast(await this.visitAddExpr(ctx.addExpr(0)));
     for (let i = 1; i < ctx.addExpr_list().length; i++) {
-      const right = smartCast(await this.visitAddExpr(ctx.addExpr(i)));
+      const right = stringSmartCast(await this.visitAddExpr(ctx.addExpr(i)));
       const operator = ctx.compOp(i - 1).getText();
       switch (operator) {
         case "=":
@@ -328,9 +374,9 @@ class PSCInterpreter extends PSCParserVisitor<
   override visitAddExpr = async (
     ctx: AddExprContext,
   ): Promise<AllowedTypes> => {
-    let result = smartCast(await this.visitMulExpr(ctx.mulExpr(0)));
+    let result = stringSmartCast(await this.visitMulExpr(ctx.mulExpr(0)));
     for (let i = 1; i < ctx.mulExpr_list().length; i++) {
-      const right = smartCast(await this.visitMulExpr(ctx.mulExpr(i)));
+      const right = stringSmartCast(await this.visitMulExpr(ctx.mulExpr(i)));
       if (typeof result !== "number" || typeof right !== "number") {
         throw new OperationValueTypeMismatchError(
           ctx,
@@ -360,9 +406,9 @@ class PSCInterpreter extends PSCParserVisitor<
   override visitMulExpr = async (
     ctx: MulExprContext,
   ): Promise<AllowedTypes> => {
-    let result = smartCast(await this.visitExpExpr(ctx.expExpr(0)));
+    let result = stringSmartCast(await this.visitExpExpr(ctx.expExpr(0)));
     for (let i = 1; i < ctx.expExpr_list().length; i++) {
-      const right = smartCast(await this.visitExpExpr(ctx.expExpr(i)));
+      const right = stringSmartCast(await this.visitExpExpr(ctx.expExpr(i)));
       if (typeof result !== "number" || typeof right !== "number") {
         throw new OperationValueTypeMismatchError(
           ctx,
@@ -379,6 +425,7 @@ class PSCInterpreter extends PSCParserVisitor<
         case "/":
           result /= right;
           break;
+        case "mod":
         case "%":
           result %= right;
           break;
@@ -397,7 +444,9 @@ class PSCInterpreter extends PSCParserVisitor<
   ): Promise<AllowedTypes> => {
     let result = await this.visitUnaryExpr(ctx.unaryExpr(0));
     for (let i = 1; i < ctx.unaryExpr_list().length; i++) {
-      const right = smartCast(await this.visitUnaryExpr(ctx.unaryExpr(i)));
+      const right = stringSmartCast(
+        await this.visitUnaryExpr(ctx.unaryExpr(i)),
+      );
       if (typeof result !== "number" || typeof right !== "number") {
         throw new OperationValueTypeMismatchError(
           ctx,
@@ -426,12 +475,13 @@ class PSCInterpreter extends PSCParserVisitor<
     ctx: UnaryExprContext,
   ): Promise<AllowedTypes> => {
     const minusCount = ctx.MINUS_list().length;
-    const value = smartCast(await this.visitNotExpr(ctx.notExpr()));
+    const plusCount = ctx.PLUS_list().length;
+    const value = stringSmartCast(await this.visitNotExpr(ctx.notExpr()));
 
-    if (typeof value !== "number" && minusCount > 0) {
+    if (typeof value !== "number" && (minusCount > 0 || plusCount > 0)) {
       throw new OperationValueTypeMismatchError(
         ctx,
-        "Negative sign operator",
+        "Unary negation/affirmation operator",
         "number",
         this.asString(ctx, value),
       );
@@ -457,7 +507,9 @@ class PSCInterpreter extends PSCParserVisitor<
     ctx: NotExprContext,
   ): Promise<AllowedTypes> => {
     const notCount = ctx.NOT_list().length;
-    const value = smartCast(await this.visitPrimaryExpr(ctx.primaryExpr()));
+    const value = stringSmartCast(
+      await this.visitPrimaryExpr(ctx.primaryExpr()),
+    );
     if (typeof value !== "boolean" && notCount > 0) {
       throw new OperationValueTypeMismatchError(
         ctx,
@@ -498,44 +550,23 @@ class PSCInterpreter extends PSCParserVisitor<
           this.asString(ctx, func),
         );
       }
-      // Function returns undefined if no return value is specified
-      return (await func(args)) ?? undefined;
-    }
-    if (ctx.LSQUARE() && ctx.RSQUARE()) {
-      const indicesRaw = await Promise.all(
+      // Function must return a value
+      return await func(args);
+    } else if (ctx.LSQUARE() && ctx.RSQUARE()) {
+      const indices = await Promise.all(
         ctx.expr_list().map((expr) => this.visitExpr(expr)),
       );
-      // Validate that the left primaryExpr is an array
-      const arr = await this.visitPrimaryExpr(ctx.primaryExpr());
-      if (!Array.isArray(arr)) {
-        throw new ArrayAccessNotArrayError(ctx, this.asString(ctx, arr));
-      }
-      // Validate all indices
-      for (const index of indicesRaw) {
-        if (typeof index !== "number" || !Number.isInteger(index)) {
-          throw new InvalidArrayIndexError(ctx, this.asString(ctx, index));
-        }
-        if (index < 1) {
-          throw new InvalidArrayIndexError(ctx, this.asString(ctx, index));
-        }
-      }
-      const indices = indicesRaw as number[];
-      return indices.reduce((arr: AllowedTypes, index: number) => {
+      const leftArr = await this.visitPrimaryExpr(ctx.primaryExpr());
+      return indices.reduce((arr: AllowedTypes, index: AllowedTypes) => {
         if (!Array.isArray(arr)) {
           throw new ArrayAccessNotArrayError(ctx, this.asString(ctx, arr));
         }
-        const subArr = arr[index - this.options.arrayStartIndex];
-        if (subArr === undefined) {
+        const normalizedIndex = this.normalizeArrayIndexOrThrow(ctx, index);
+        if (normalizedIndex > arr.length - 1) {
           throw new InvalidArrayIndexError(ctx, this.asString(ctx, index));
         }
-        if (
-          !Array.isArray(subArr) &&
-          indices.indexOf(index) !== indices.length - 1
-        ) {
-          throw new ArrayAccessNotArrayError(ctx, this.asString(ctx, subArr));
-        }
-        return subArr;
-      }, arr);
+        return arr[normalizedIndex];
+      }, leftArr);
     } else if (ctx.groupExpr()) {
       return await this.visitGroupExpr(ctx.groupExpr());
     }
@@ -571,9 +602,11 @@ class PSCInterpreter extends PSCParserVisitor<
     } else if (ctx.arrayLits()) {
       return await this.visitArrayLits(ctx.arrayLits());
     } else if (ctx.STRING()) {
-      return ctx.STRING().getText().slice(1, -1); // Remove quotes
+      return stringSmartCast(ctx.STRING().getText().slice(1, -1)); // Remove quotes
     } else if (ctx.BOOLEAN()) {
       return ctx.BOOLEAN().getText().toLowerCase() === "true";
+    } else if (ctx.NULL()) {
+      return null;
     }
     throw new ImpossibleError(ctx, "Invalid literal");
   };
@@ -603,6 +636,10 @@ class PSCInterpreter extends PSCParserVisitor<
   override visitStmts = async (ctx: StmtsContext): Promise<void> => {
     for (const stmt of ctx.stmt_list()) {
       await this.visitStmt(stmt);
+      if (this.isReturning()) {
+        // If a return statement was executed, stop executing further statements
+        break;
+      }
     }
   };
 
@@ -784,8 +821,13 @@ class PSCInterpreter extends PSCParserVisitor<
     if (this.variableExists(loopVar)) {
       throw new ForVariableReuseError(ctx, loopVar);
     }
-    if (typeof fromValue !== "number" || typeof toValue !== "number") {
-      throw new ForRangeNotNumberError(ctx, `${fromValue} and ${toValue}`);
+    if (
+      typeof fromValue !== "number" ||
+      typeof toValue !== "number" ||
+      !Number.isInteger(fromValue) ||
+      !Number.isInteger(toValue)
+    ) {
+      throw new ForRangeNotIntegerError(ctx, `${fromValue} and ${toValue}`);
     }
     for (
       let i = fromValue;
@@ -814,94 +856,80 @@ class PSCInterpreter extends PSCParserVisitor<
             : undefined,
         set: (value: AllowedTypes) => this.assignVariable(ctx, varName, value),
       };
-    } else if (ctx.LSQUARE() && ctx.RSQUARE()) {
-      const indicesRaw = await Promise.all(
+    } else if (ctx.lvalue() && ctx.LSQUARE() && ctx.RSQUARE()) {
+      const leftRef = await this.visitLvalue(ctx.lvalue());
+      const leftVal = leftRef.get();
+      const unnormalizedIndices = await Promise.all(
         ctx.expr_list().map((expr) => this.visitExpr(expr)),
       );
-      // Validate all indices
-      for (const index of indicesRaw) {
-        if (typeof index !== "number" || !Number.isInteger(index)) {
-          throw new InvalidArrayIndexError(ctx, this.asString(ctx, index));
-        }
-        if (index < 1) {
-          throw new InvalidArrayIndexError(ctx, this.asString(ctx, index));
-        }
-      }
-      // Type assertion after validation
-      const indices = indicesRaw as number[];
-      // Get a reference to the left-hand side variable or array
-      const leftRef = await this.visitLvalue(ctx.lvalue());
-      // TODO: rewrite this code since this is really messy
+
       return {
         get: () => {
-          const leftArr = leftRef.get();
-          // Returns undefined if the left-hand side is undefined, to allow for implicit array creation
-          if (leftArr === undefined) {
+          // In lvalue array access, since we allow implicit array creation,
+          // if leftVal is undefined, we return undefined instead of throwing.
+          if (leftVal === undefined) {
             return undefined;
           }
-          // If the left-hand side is not an array, throw an error
-          if (!Array.isArray(leftArr)) {
-            throw new ArrayAccessNotArrayError(
-              ctx,
-              this.asString(ctx, leftArr),
-            );
-          }
-          return indices.reduce((arr: AllowedTypes, index: number) => {
-            if (!Array.isArray(arr)) {
-              throw new ArrayAccessNotArrayError(ctx, this.asString(ctx, arr));
-            }
-            const subArr = arr[index - this.options.arrayStartIndex];
-            if (subArr === undefined && index !== indices[indices.length - 1]) {
-              // If next level is undefined, throw an error because we cannot access an undefined value
-              throw new InvalidArrayIndexError(ctx, this.asString(ctx, index));
-            } else if (
-              // If the next level is not an array and we are not at the last index
-              // throw an error because we cannot access an index of a non-array value
-              !Array.isArray(subArr) &&
-              index !== indices[indices.length - 1]
-            ) {
+
+          let current: AllowedTypes = leftVal;
+          for (const unnormalizedIndex of unnormalizedIndices) {
+            if (!Array.isArray(current)) {
               throw new ArrayAccessNotArrayError(
                 ctx,
-                this.asString(ctx, subArr),
+                this.asString(ctx, current),
               );
             }
-            return subArr;
-          }, leftArr);
+            const normalizedIndex = this.normalizeArrayIndexOrThrow(
+              ctx,
+              unnormalizedIndex,
+            );
+            // Since we allow implicit array extension,
+            // if the index is out of bounds, we return undefined instead of throwing.
+            if (normalizedIndex >= current.length) {
+              return undefined;
+            }
+            current = current[normalizedIndex];
+          }
+          return current;
         },
         set: (value: AllowedTypes) => {
-          let arr = leftRef.get();
-          if (arr === undefined) {
-            arr = [];
-          }
+          const arr = leftVal != undefined ? leftVal : [];
           if (!Array.isArray(arr)) {
             throw new ArrayAccessNotArrayError(ctx, this.asString(ctx, arr));
           }
-          // Navigate to the second-to-last nested level
-          const targetParent = indices
-            .map((x) => x - 1)
-            .slice(0, -1)
-            .reduce((current, index) => {
-              if (current[index] === undefined) {
-                while (current.length <= index) {
-                  current.push(undefined);
-                }
-                current[index] = [];
-              }
-              if (!Array.isArray(current[index])) {
-                throw new ArrayAccessNotArrayError(
-                  ctx,
-                  this.asString(ctx, current[index]),
-                );
-              }
-              return current[index];
-            }, arr); // arr must be an array here
 
-          // Indices must have at least one element, so lastIndex is safe to access
-          const lastIndex = indices[indices.length - 1]!;
-          // targetParent must be an array here
-          // targetParent is a reference to the array at the second-to-last level
-          // this mutates arr
-          targetParent[lastIndex - this.options.arrayStartIndex] = value;
+          // Walk to the parent of the final index, creating intermediate arrays as needed
+          let current: AllowedTypes[] = arr;
+          for (let i = 0; i < unnormalizedIndices.length - 1; i++) {
+            const normalizedIndex = this.normalizeArrayIndexOrThrow(
+              ctx,
+              unnormalizedIndices[i],
+            );
+            // Implicit extension of the array if the index is out of bounds
+            while (current.length <= normalizedIndex) {
+              current.push(undefined);
+            }
+            if (current[normalizedIndex] === undefined) {
+              current[normalizedIndex] = [];
+            }
+            if (!Array.isArray(current[normalizedIndex])) {
+              throw new ArrayAccessNotArrayError(
+                ctx,
+                this.asString(ctx, current[normalizedIndex]),
+              );
+            }
+            current = current[normalizedIndex];
+          }
+
+          // Set the final index
+          const lastNormalizedIndex = this.normalizeArrayIndexOrThrow(
+            ctx,
+            unnormalizedIndices[unnormalizedIndices.length - 1],
+          );
+          while (current.length <= lastNormalizedIndex) {
+            current.push(undefined);
+          }
+          current[lastNormalizedIndex] = value;
 
           leftRef.set(arr);
         },
@@ -912,7 +940,7 @@ class PSCInterpreter extends PSCParserVisitor<
 
   override visitInputStmt = async (ctx: InputStmtContext): Promise<void> => {
     const ref = await this.visitLvalue(ctx.lvalue());
-    const value = await this.options.inputFunction?.();
+    const value = stringSmartCast(await this.options.inputFunction?.());
     ref.set(value);
   };
 
@@ -932,7 +960,7 @@ class PSCInterpreter extends PSCParserVisitor<
     // Subprogram is stored as a variable in the current variable stack
     this.assignVariable(ctx, name, async (params: AllowedTypes[]) => {
       if (params.length !== paramNames.length) {
-        throw new UnmatchedParameterError(
+        throw new UnmatchedArgumentsError(
           ctx,
           name,
           paramNames.length,
@@ -941,13 +969,29 @@ class PSCInterpreter extends PSCParserVisitor<
       }
       // Create a new variable stack for the subprogram execution ignoring strictVariableScope option.
       // This ensures that variables defined within the subprogram do not interfere with those in the calling context.
-      this.newVariableStack(ctx);
+
+      // If strictVariableScope is true, there is no need to create a new variable stack here
+      // since that is automatically handled by the visitBlock method
+      if (!this.options.strictVariableScope) {
+        this.newVariableStack(ctx);
+      }
+      // Assign arguments to the new variable stack
       for (let i = 0; i < paramNames.length; i++) {
         this.assignVariable(ctx, paramNames[i]!, params[i]!);
       }
       await this.visitBlock(ctx.block());
-      this.popVariableStack(ctx);
+      if (!this.options.strictVariableScope) {
+        this.popVariableStack(ctx);
+      }
+      // Terminate the returning state here
+
+      return this.terminateReturn() ?? null;
     });
+  };
+
+  override visitReturnStmt = async (ctx: ReturnStmtContext): Promise<void> => {
+    const value = await this.visitExpr(ctx.expr());
+    this.initiateReturn(value);
   };
 }
 
@@ -964,64 +1008,6 @@ class PSCErrorListener extends ErrorListener<Token> {
     column: number,
     msg: string,
   ): void {
-    throw new SyntaxError(
-      `Syntax error at line ${line}, column ${column}: ${msg}`,
-    );
+    throw new PSCSyntaxError(line, column, msg);
   }
 }
-
-/* TODO
-
-Strong not or weak not
-
-Features 
-
-Optional strict/weak variable scoping
-
-Variables types
-- String
-- Number
-- Boolean
-- Array (not implemented)
-
-= String
-== String literal
-String literal must be quoted using single quote (') or double quote (")
-
-For example,
-- "Hello" and 'Hello' are both valid string literals
-- But "Hello' are not
-
-= Number
-Number can be integer or float, and can be negative or positive.
-== Number literal
-Number literal can be written as is.
-
-For example,
-- 1, -1, 11.1, -11.11 are all valid number literals
-- 01, -01, are also valid
-- .1 means 0.1
-
-= Array
-Array is a list of values of any type.
-
-== Array index
-Array index starts from 1 (i.e. A[0] is not valid).
-
-== Array literal
-Array literal must be enclosed by square brackets ([ and ]). Each array element must be separated by a comma.
-
-For example
-- [1, 2, 3] is a valid array literal
-- ['1', true, 2] is also valid
-- [ [1,2], true, ['a', "b"] ] is also valid
-
-== Implicit creation
-If an unused identifier is assigned a value at index i, an array with length i of that identifier is implicitly created. The i-th value of that array is automatically assigned.
-
-== Implicit extension
-If A is an array of length i, and A[j] <- k, where j > i. Then, the array is automatically extended to length j, with A[j] = k
-
-Smart casting
-When performing operations on string, prefer non-string types, e.g. "1" + "2" should be 3 or "true" = true should be true
-*/

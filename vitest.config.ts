@@ -6,5 +6,9 @@ export default defineConfig({
     globals: true,
     environment: "node",
     watch: false,
+    coverage: {
+      provider: "v8",
+      include: ["src/**/*.ts"],
+    },
   },
 });

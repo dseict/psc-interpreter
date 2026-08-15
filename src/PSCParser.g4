@@ -25,13 +25,13 @@ primaryExpr: groupExpr | primaryExpr LSQUARE expr (COMMA expr)* RSQUARE | primar
 groupExpr: atom | (LPAREN expr RPAREN);
 atom: lits | ID;
 
-lits: intLits | floatLits | arrayLits | STRING | BOOLEAN;
+lits: intLits | floatLits | arrayLits | STRING | BOOLEAN | NULL;
 intLits: MINUS? INTEGER;
 floatLits: MINUS? FLOAT;
 arrayLits: LSQUARE (expr (COMMA expr)*)? RSQUARE;
 
 // Statements
-stmts: (stmt | NEWLINE)+;
+stmts: NEWLINE* stmt (NEWLINE+ stmt)* NEWLINE*;
 
 stmt:
 	expr
@@ -42,19 +42,20 @@ stmt:
 	| forStmt
 	| asmStmt
 	| inputStmt
-	| outputStmt;
+	| outputStmt
+	| returnStmt;
 
 block:
-	NEWLINE INDENT stmts NEWLINE? DEDENT; // NEWLINE is optional since might dedent twice in a row
+	INDENT stmts DEDENT;
 
-ifStmt: IF expr block (ELSE ifStmt | ELSE block)?;
+ifStmt: IF expr NEWLINE block (NEWLINE ELSE ifStmt | NEWLINE ELSE NEWLINE block)?;
 
-whileStmt: WHILE expr block;
-doWhileStmt: DO block WHILE expr;
+whileStmt: WHILE expr NEWLINE block;
+doWhileStmt: DO NEWLINE block NEWLINE WHILE expr;
 
-repeatUntilStmt: REPEAT block UNTIL expr;
+repeatUntilStmt: REPEAT NEWLINE block NEWLINE UNTIL expr;
 
-forStmt: FOR ID FROM expr DOWN? TO expr block;
+forStmt: FOR ID FROM expr DOWN? TO expr NEWLINE block;
 
 asmStmt: lvalue ASSIGN expr;
 
@@ -65,4 +66,6 @@ inputStmt: INPUT lvalue;
 outputStmt: OUTPUT expr;
 
 // Subprogram
-subprogram: SUBPROGRAM ID LPAREN (ID (COMMA ID)*)? RPAREN block;
+subprogram: SUBPROGRAM ID LPAREN (ID (COMMA ID)*)? RPAREN NEWLINE block;
+
+returnStmt: RETURN expr;

@@ -4,9 +4,12 @@ import {
   AccessNonExistingVariableError,
   ArrayAccessNotArrayError,
   ConditionNotBooleanError,
-  ForRangeNotNumberError,
+  ForRangeNotIntegerError,
+  ForVariableReuseError,
   InvalidArrayIndexError,
   OperationValueTypeMismatchError,
+  PSCSyntaxError,
+  UnmatchedArgumentsError,
 } from "./error";
 
 async function output(code: string, options: Partial<InterpreterOptions> = {}) {
@@ -19,51 +22,104 @@ async function output(code: string, options: Partial<InterpreterOptions> = {}) {
 }
 
 async function outputOf(
-  code: string,
+  code: string[],
   options: Partial<InterpreterOptions> = {},
 ) {
   const out = [] as string[];
-  await interpret(code, { outputFunction: (s) => out.push(s), ...options });
+  await interpret(code.join("\n"), {
+    outputFunction: (s) => out.push(s),
+    ...options,
+  });
   return out;
 }
 
 async function running(
-  code: string,
+  code: string | string[],
   options: Partial<InterpreterOptions> = {},
 ) {
-  await interpret(code, options);
+  if (typeof code === "string") {
+    code = [code];
+  }
+  await interpret(code.join("\n"), options);
 }
 
-describe("parse literals", () => {
-  describe("string", () => {
+describe("lexing and parsing", () => {
+  it("should parse code that ends with no newline", async () => {
+    await expect(running("output 1")).resolves.not.toThrow();
+  });
+  it("should parse code that ends with a newline", async () => {
+    await expect(running("output 1\n")).resolves.not.toThrow();
+  });
+  it("should only accept spaces as valid indentation", async () => {
+    await expect(running(["if true", "  output 1"])).resolves.not.toThrow();
+    await expect(running(["if true", "\toutput 1"])).rejects.toThrow(
+      PSCSyntaxError,
+    );
+  });
+  it("should only accept indentation that is a multiple of 2", async () => {
+    await expect(running(["if true", "  output 1"])).resolves.not.toThrow();
+    await expect(running(["if true", " output 1"])).rejects.toThrow(
+      PSCSyntaxError,
+    );
+    await expect(running(["if true", "    output 1"])).rejects.toThrow(
+      PSCSyntaxError,
+    );
+  });
+});
+
+describe("literals", () => {
+  describe("strings", () => {
     test.for([
-      [`'hello'`, "hello"],
-      [`"hello"`, "hello"],
-      [`'HeLLo'`, "HeLLo"],
+      [`'hello'`, `"hello"`],
+      [`"hello"`, `"hello"`],
+      [`'HeLLo'`, `"HeLLo"`],
+      [`"'"`, `"'"`],
+      [`'""'`, `""""`], // TODO: Should this be `'""'` instead of `""""`?
+      [`""`, `""`],
+      [`" "`, `" "`],
+      [`'\\'`, `"\\"`],
+      [`'\\n'`, `"\\n"`],
     ])("%s -> %s", async ([a, b]) => {
       expect(await output(a!)).toBe(b);
     });
+    test.for([`"hello'`, `"hello'`, `""""`, `''''`])(
+      "%s -> PSCSyntaxError",
+      async (s) => {
+        await expect(() => running(s)).rejects.toThrow(PSCSyntaxError);
+      },
+    );
   });
-  describe("number", () => {
+  describe("numbers", () => {
     test.for([
       [`1`, "1"],
       [`-1`, "-1"],
+      ["00234", "234"],
       [`11.1`, "11.1"],
       [`-11.11`, "-11.11"],
-      [`.1`, "0.1"],
       [`-.11`, "-0.11"],
+      [`+.11`, "0.11"],
+      ["0.0", "0"],
+      [".0", "0"],
+      [`.1`, "0.1"],
+      [`-.1`, "-0.1"],
+      [`42.`, "42"],
+      ["--1", "1"],
+      ["++1", "1"],
+      ["-0", "0"],
     ])("%s -> %s", async ([a, b]) => {
       expect(await output(a!)).toBe(b);
     });
   });
-  describe("boolean", () => {
+  describe("booleans", () => {
     test.for([
       [`true`, "true"],
       [`True`, "true"],
       [`TRUE`, "true"],
+      [`tRuE`, "true"],
       [`false`, "false"],
       [`False`, "false"],
       [`FALSE`, "false"],
+      [`fAlSe`, "false"],
     ])("%s -> %s", async ([a, b]) => {
       expect(await output(a!)).toBe(b);
     });
@@ -71,567 +127,685 @@ describe("parse literals", () => {
   describe("array", () => {
     test.for([
       [`[]`, "[]"],
+      [`[ 1 ]`, "[1]"],
       [`[1, 2, 3]`, "[1,2,3]"],
-      [`[1, 'a', true]`, "[1,a,true]"],
+      [`[1, 'a', true]`, `[1,"a",true]`],
       [`[[1, 2], [3, 4]]`, "[[1,2],[3,4]]"],
-      [`[[1, [ 2, true], 'a'], [3, 4]]`, "[[1,[2,true],a],[3,4]]"],
+      [`[[1, [ 2, true], 'a'], [3, 4]]`, `[[1,[2,true],"a"],[3,4]]`],
     ])("%s -> %s", async ([a, b]) => {
       expect(await output(a!)).toBe(b);
     });
   });
-});
-
-describe("variables", () => {
-  it("should assign variable", async () => {
-    const code = ["A <- 1", "output A"].join("\n");
-    expect(await outputOf(code)).toStrictEqual(["1"]);
-  });
-  it("should throw if access non-existing variable", async () => {
-    const code = ["output A"].join("\n");
-    await expect(() => running(code)).rejects.toThrow(
-      AccessNonExistingVariableError,
-    );
-  });
-  it("should have correct scope in strict scope mode", async () => {
-    const code = ["A <- 1", "if true", "  B <- 2", "output B"].join("\n");
-    await expect(() =>
-      outputOf(code, { strictVariableScope: true }),
-    ).rejects.toThrow(AccessNonExistingVariableError);
-  });
-});
-
-describe("operator precedence", () => {
-  test.for([
-    ["true or false and false", "true"],
-    ["false and false or true", "true"],
-    ["2 + 2 > 5", "false"],
-    ["2+4>2 or 9+9>2 and 9>1", "true"],
-    ["1+2*2+2", "7"],
-    ["2**4*2+2", "34"],
-    ["-2+-2*-10", "18"],
-    ["--2", "2"],
-    ["+-2", "-2"],
-    ["not false and not true", "false"],
-    ["not false and not true or not false", "true"],
-    ["not (false and true)", "true"],
-  ])("%s -> %s", async ([a, b]) => {
-    expect(await output(a!)).toBe(b);
-  });
-});
-
-describe("io statements", () => {
-  it("should output correctly", async () => {
-    const code = ["output 1", "output 2"].join("\n");
-    expect(await outputOf(code)).toStrictEqual(["1", "2"]);
-  });
-  it("should input correctly", async () => {
-    const code = ["input A", "output A"].join("\n");
-    await interpret(code, {
-      inputFunction: () => Promise.resolve("1"),
-      outputFunction: (s) => expect(s).toBe("1"),
+  describe("null", () => {
+    test.for([`null`, `NULL`, `Null`, `nUlL`])("%s -> null", async (a) => {
+      expect(await output(a!)).toBe("null");
     });
   });
 });
 
-describe("evaluate expression", () => {
-  describe("should evaluate expression correctly", () => {
+describe("output of data types", () => {
+  describe("strings", () => {
     test.for([
-      [`1 + 2`, "3"],
-      [`2 - 1`, "1"],
-      [`2 * 2`, "4"],
-      [`9 / 3`, "3"],
-      [`2 ^ 4`, "16"],
-      [`2 ** 4`, "16"],
-      [`19 % 4`, "3"],
-      [
-        `3/(19%(9+2))/2^(5-2*(4+7))%7+(2)`,
-        `${((3 / (19 % (9 + 2)) / 2 ** (5 - 2 * (4 + 7))) % 7) + 2}`,
-      ],
-      ["true and true", "true"],
-      ["true and false", "false"],
-      ["false and false", "false"],
-      ["true or true", "true"],
-      ["false or false", "false"],
-      ["true or false", "true"],
-      ["not true", "false"],
-      ["not false", "true"],
-      ["1 < 2", "true"],
-      ["1 > 2", "false"],
-      ["1 <= 2", "true"],
-      ["1 >= 2", "false"],
-      ["1 = 2", "false"],
-      ["1 <> 2", "true"],
+      [`'hello'`, `"hello"`],
+      [`"hello"`, `"hello"`],
     ])("%s -> %s", async ([a, b]) => {
       expect(await output(a!)).toBe(b);
     });
   });
-  describe("should not evaluate operation with wrong value type", () => {
+  describe("numbers", () => {
     test.for([
-      "not 1",
-      "1 and 1",
-      "1 or 'abc'",
-      "'a' + 9",
-      "'a' * 9",
-      "true ^ 2",
-      "true > 2",
-      "true > false",
-    ])("%s", async (c) => {
-      await expect(() => running(c)).rejects.toThrow(
+      ["1", "1"],
+      ["-1", "-1"],
+      ["01", "1"],
+      ["1.20", "1.2"],
+      ["1.0", "1"],
+    ])("%s -> %s", async ([a, b]) => {
+      expect(await output(a!)).toBe(b);
+    });
+  });
+  describe("booleans", () => {
+    test.for([
+      [`TRUE`, "true"],
+      [`FALSE`, "false"],
+    ])("%s -> %s", async ([a, b]) => {
+      expect(await output(a!)).toBe(b);
+    });
+  });
+  describe("arrays", () => {
+    test.for([
+      [`[  ] `, "[]"],
+      [`[[1, [ 2, true], 'a'], [3, 'abc']]`, `[[1,[2,true],"a"],[3,"abc"]]`],
+    ])("%s -> %s", async ([a, b]) => {
+      expect(await output(a!)).toBe(b);
+    });
+  });
+  describe("null", () => {
+    test.for([`NULL`, `Null`])("%s -> null", async (a) => {
+      expect(await output(a!)).toBe("null");
+    });
+  });
+});
+
+describe("operators", () => {
+  describe("smart casting", () => {
+    test.for([
+      [`"1"`, "1"],
+      [`"-1"`, "-1"],
+      [`"-0.1"`, "-0.1"],
+      [`"-.1"`, "-0.1"],
+      [`"-.0"`, "0"],
+      [`"abc"`, `"abc"`],
+      [`"true"`, `true`],
+      [`"FaLsE"`, `false`],
+      [`"nuLL"`, `null`],
+    ])("%s -> %s", async ([a, b]) => {
+      expect(await output(a!)).toBe(b);
+    });
+  });
+  describe("arithmetic", () => {
+    test.for([
+      ["1 + 2", "3"],
+      ["2 - 1", "1"],
+      ["2 * 2", "4"],
+      ["9 / 3", "3"],
+      ["2 ^ 4", "16"],
+      ["2 ** 4", "16"],
+      ["19 % 4", "3"],
+      ["19 mod 4", "3"],
+    ])("%s -> %s", async ([a, b]) => {
+      expect(await output(a!)).toBe(b);
+    });
+    test.for([
+      "1 + true",
+      "1 - 'a'",
+      "true * true",
+      "true / true",
+      "1 % 'a'",
+      "null mod 'a'",
+      "false ^ 'a'",
+      "true ** 'a'",
+    ])("%s -> OperationValueTypeMismatchError", async (a) => {
+      await expect(() => running(a)).rejects.toThrow(
         OperationValueTypeMismatchError,
       );
     });
   });
-  describe("should smart casting during evaluation", () => {
+  describe("comparison", () => {
     test.for([
-      [`"1"+1`, "2"],
-      [`2+"0.2"`, "2.2"],
-      [`"true" and true`, "true"],
+      ["1 = 2", "false"],
+      [`"a" = "a"`, "true"],
+      ["true = true", "true"],
+      ["null = null", "true"],
+      [`"1" = 1`, "true"],
+      [`"1" = 2`, "false"],
+      ["1 <> 2", "true"],
+      ["true <> false", "true"],
+      ["null <> null", "false"],
+      [`"1" <> 1`, "false"],
+      [`"a" <> "b"`, "true"],
+      [`"a" <> "A"`, "true"],
+      [`2 > 1`, "true"],
+      [`1 > 1`, "false"],
+      [`0 > 1`, "false"],
+      [`2 < 1`, "false"],
+      [`1 < 1`, "false"],
+      [`0 < 1`, "true"],
+      [`2 >= 1`, "true"],
+      [`1 >= 1`, "true"],
+      [`0 >= 1`, "false"],
+      [`2 <= 1`, "false"],
+      [`1 <= 1`, "true"],
+      [`0 <= 1`, "true"],
+      [`"c" > "b"`, "true"],
+      [`"a" < "c"`, "true"],
+      [`"b" < "b"`, "false"],
+      [`"cba" > "abc"`, "true"],
+      [`"abd" > "abc"`, "true"],
+      [`"c" >= "c"`, "true"],
+      [`"d" >= "c"`, "true"],
+      [`"c" <= "c"`, "true"],
+      [`"d" <= "c"`, "false"],
+    ])("%s -> %s", async ([a, b]) => {
+      expect(await output(a!)).toBe(b);
+    });
+
+    test.for(["1 > true", "1 < 'a'", "true >= false", "true <= true"])(
+      "%s -> OperationValueTypeMismatchError",
+      async (a) => {
+        await expect(() => running(a)).rejects.toThrow(
+          OperationValueTypeMismatchError,
+        );
+      },
+    );
+  });
+  describe("logical", () => {
+    test.for([
+      ["true and true", "true"],
+      ["true and false", "false"],
+      ["false and true", "false"],
+      ["false and false", "false"],
+      ["true or true", "true"],
+      ["true or false", "true"],
+      ["false or true", "true"],
+      ["false or false", "false"],
+    ])("%s -> %s", async ([a, b]) => {
+      expect(await output(a!)).toBe(b);
+    });
+    test.for(["true and 1", "false or 'a'", "true or null", "1 or 2"])(
+      "%s -> OperationValueTypeMismatchError",
+      async (a) => {
+        await expect(() => running(a)).rejects.toThrow(
+          OperationValueTypeMismatchError,
+        );
+      },
+    );
+  });
+  describe("negation", () => {
+    test.for([
+      ["not true", "false"],
+      ["not false", "true"],
+    ])("%s -> %s", async ([a, b]) => {
+      expect(await output(a!)).toBe(b);
+    });
+    test.for(["not 1", "not 'a'", "not null"])(
+      "%s -> OperationValueTypeMismatchError",
+      async (a) => {
+        await expect(() => running(a)).rejects.toThrow(
+          OperationValueTypeMismatchError,
+        );
+      },
+    );
+  });
+  describe("unary", () => {
+    test.for([
+      ["-1", "-1"],
+      ["+1", "1"],
+      ["-+-1", "1"],
+      [`-"1"`, "-1"],
+      [`+"1"`, "1"],
+      [`-+-"1"`, "1"],
+      [`-"-1"`, "1"],
+      [`+"-1"`, "-1"],
+      [`-"-0"`, "0"],
+    ])("%s -> %s", async ([a, b]) => {
+      expect(await output(a!)).toBe(b);
+    });
+    test.for(["-true", "+false", "-'a'", "+'b'"])(
+      "%s -> OperationValueTypeMismatchError",
+      async (a) => {
+        await expect(() => running(a)).rejects.toThrow(
+          OperationValueTypeMismatchError,
+        );
+      },
+    );
+  });
+  describe("group", () => {
+    test.for([
+      ["(1 + 2) * 3", "9"],
+      ["1 + (2 * 3)", "7"],
+      ["((1 + 2) * (3 + 4))", "21"],
+      ["(true or false) and (false or true)", "true"],
     ])("%s -> %s", async ([a, b]) => {
       expect(await output(a!)).toBe(b);
     });
   });
-});
-
-describe("1D arrays", () => {
-  it("should assign array to variable", async () => {
-    const code = ["A <- [1, 2, 3]", "output A"].join("\n");
-    expect(await outputOf(code)).toStrictEqual(["[1,2,3]"]);
-  });
-  describe("should access element of an array literal correctly", () => {
+  describe("array access", () => {
     test.for([
-      ["[0,2,1][1]", "0"],
-      ["[1,2,3,4,5][2]", "2"],
-      ["[1,2,5,6,7][4]", "6"],
-      ["[1,2,5,6,7][4]", "6"],
+      ["[1, 2, 3][1]", "1"],
+      ["[1, 2, 3][2]", "2"],
+      ["[1, 2, 3][3]", "3"],
+      ["[[1, 2], [3, 4]][1][2]", "2"],
+      ["[[1, 2], [3, 4]][1,2]", "2"],
+      ["[[1, 2], [3, 4]][2][2]", "4"],
+      ["[[1, 2], [3, 4]][2,2]", "4"],
+      ["[[1, 2], [3, [3,4]]][2,2][2]", "4"],
     ])("%s -> %s", async ([a, b]) => {
       expect(await output(a!)).toBe(b);
     });
-  });
-  it("should access element of an array variable correctly", async () => {
-    const code = ["A <- [1,2,3,4]", "output A[1]"].join("\n");
-    expect(await outputOf(code)).toStrictEqual(["1"]);
-  });
-  it("should assign to an element of an array variable correctly", async () => {
-    const code = ["A <- [1,2,3,4]", "A[2] <- 9", "output A"].join("\n");
-    expect(await outputOf(code)).toStrictEqual(["[1,9,3,4]"]);
-  });
-  describe("should throw for bad array indices", () => {
-    test.for(["[0,2,3][0]", "[0,2,3][4]", "[0,2,3][-1]"])("%s", async (c) => {
-      await expect(() => output(c)).rejects.toThrow(InvalidArrayIndexError);
-    });
     test.for([
-      "[0,2,3][0.1]",
-      "[0,2,3][-1.5]",
-      "[0,2,3]['abc']",
-      "[0,1,2][true]",
-    ])("%s", async (c) => {
-      await expect(() => output(c)).rejects.toThrow(InvalidArrayIndexError);
+      "[1, 2, 3]['a']",
+      "[1, 2, 3][0]",
+      "[1, 2, 3][4]",
+      "[[1, 2], [3, 4]][1,3]",
+      "[[1, 2], [3, 4]][-1]",
+      "[1,2,3][true]",
+    ])("%s -> InvalidArrayIndexError", async (a) => {
+      await expect(() => output(a)).rejects.toThrow(InvalidArrayIndexError);
     });
-  });
-  describe("should throw if it is not even an array", () => {
-    test.for(["'2'[0]", "true[4]", "2[-1]"])("%s", async (c) => {
-      await expect(() => output(c)).rejects.toThrow(ArrayAccessNotArrayError);
-    });
-  });
-  describe("should be able to chain array access", () => {
-    test.for([
-      ["[1,[9,9.9],3][2][1]", "9"],
-      ["[true, false, [9, 1]][3][1]", "9"],
-    ])("%s", async ([a, b]) => {
-      expect(await output(a!)).toBe(b);
-    });
-  });
-  it("should be able to iterate through an array", async () => {
-    const code = [
-      "A <- [10,9,8,7,6,5,4,3,2,1]",
-      "for i from 1 to 10",
-      "  output A[i]",
-    ].join("\n");
-    expect(await outputOf(code)).toStrictEqual([
-      "10",
-      "9",
-      "8",
-      "7",
-      "6",
-      "5",
-      "4",
-      "3",
-      "2",
-      "1",
-    ]);
-  });
-  it("should create an array implicitly when assigning to an index", async () => {
-    const code = ["A[2] <- 2", "output A"].join("\n");
-    expect(await outputOf(code)).toStrictEqual(["[,2]"]);
-  });
-  it("should extend an array implicitly when assigning to an index", async () => {
-    const code = ["A <- [1,2]", "A[5] <- 5", "output A"].join("\n");
-    expect(await outputOf(code)).toStrictEqual(["[1,2,,,5]"]);
-  });
-  it("should throw if assigning to an index of a non-array variable", async () => {
-    const code = ["A <- 1", "A[2] <- 2"].join("\n");
-    await expect(() => running(code)).rejects.toThrow(ArrayAccessNotArrayError);
-  });
-  it("should throw if assigning to an index that is not an integer", async () => {
-    const code = ["A <- [1,2]", "A[2.5] <- 2"].join("\n");
-    await expect(() => running(code)).rejects.toThrow(InvalidArrayIndexError);
-  });
-  it("should throw if assigning to an index that is out of bounds", async () => {
-    const code = ["A <- [1,2]", "A[0] <- 2"].join("\n");
-    await expect(() => running(code)).rejects.toThrow(InvalidArrayIndexError);
+    test.for(["[1, 2, 3][1,2]", "[1, 2, true][3,6]", "[null][1][1]"])(
+      "%s -> ArrayAccessNotArrayError",
+      async (a) => {
+        await expect(() => output(a)).rejects.toThrow(ArrayAccessNotArrayError);
+      },
+    );
   });
 });
 
-describe("2D arrays", () => {
-  it("should assign 2D array to variable", async () => {
-    expect(
-      await outputOf(["A <- [[1,2],[3,4]]", "output A"].join("\n")),
-    ).toStrictEqual(["[[1,2],[3,4]]"]);
+describe("variables", () => {
+  it("can be assigned, reassigned and retrieved", async () => {
+    await expect(
+      outputOf(["A <- 1", "output A", "A <- 2", "output A"]),
+    ).resolves.toStrictEqual(["1", "2"]);
   });
-  it("should access element of a 2D array variable correctly", async () => {
-    expect(
-      await outputOf(["A <- [[1,2],[3,4]]", "output A[1][2]"].join("\n")),
-    ).toStrictEqual(["2"]);
-    expect(
-      await outputOf(["A <- [[1,2],[3,4]]", "output A[1,2]"].join("\n")),
-    ).toStrictEqual(["2"]);
+  it("accessing a non-existing variable throws AccessNonExistingVariableError", async () => {
+    await expect(() => running("output A")).rejects.toThrow(
+      AccessNonExistingVariableError,
+    );
   });
-  it("should assign to an element of a 2D array variable correctly", async () => {
-    expect(
-      await outputOf(
-        ["A <- [[1,2],[3,4]]", "A[1][2] <- 9", "output A"].join("\n"),
-      ),
-    ).toStrictEqual(["[[1,9],[3,4]]"]);
-    expect(
-      await outputOf(
-        ["A <- [[1,2],[3,4]]", "A[1,2] <- 9", "output A"].join("\n"),
-      ),
-    ).toStrictEqual(["[[1,9],[3,4]]"]);
-  });
-  it("should automatically create a 2D array when assigning to an index", async () => {
-    expect(
-      await outputOf(["A[1][2] <- 9", "output A"].join("\n")),
-    ).toStrictEqual(["[[,9]]"]);
-    expect(
-      await outputOf(["A[1,2] <- 9", "output A"].join("\n")),
-    ).toStrictEqual(["[[,9]]"]);
-  });
-  it("should automatically extend a 2D array when assigning to an index", async () => {
-    expect(
-      await outputOf(
-        ["A <- [[1,2],[3,4,9]]", "A[4][4] <- 9", "output A"].join("\n"),
-      ),
-    ).toStrictEqual(["[[1,2],[3,4,9],,[,,,9]]"]);
-    expect(
-      await outputOf(
-        ["A <- [[1,2],[3,4,9]]", "A[4,4] <- 9", "output A"].join("\n"),
-      ),
-    ).toStrictEqual(["[[1,2],[3,4,9],,[,,,9]]"]);
-  });
-  it("should create a 2D array when assigning to an index which is empty", async () => {
-    expect(
-      await outputOf(
-        ["A <- [1]", "A[3] <- 9", "A[2][3]<-9", "output A"].join("\n"),
-      ),
-    ).toStrictEqual(["[1,[,,9],9]"]);
-    expect(
-      await outputOf(
-        ["A <- [[1,2],[3,4,9]]", "A[4][4] <- 9", "output A"].join("\n"),
-      ),
-    ).toStrictEqual(["[[1,2],[3,4,9],,[,,,9]]"]);
-    expect(
-      await outputOf(
-        ["A <- [[1,2],[3,4,9]]", "A[4,4] <- 9", "output A"].join("\n"),
-      ),
-    ).toStrictEqual(["[[1,2],[3,4,9],,[,,,9]]"]);
-  });
-  it("should create a 2D array when assigning to an index which is empty", async () => {
-    expect(
-      await outputOf(
-        ["A <- [1]", "A[3] <- 9", "A[2][3]<-9", "output A"].join("\n"),
-      ),
-    ).toStrictEqual(["[1,[,,9],9]"]);
-    expect(
-      await outputOf(
-        ["A <- [1]", "A[3] <- 9", "A[2,3]<-9", "output A"].join("\n"),
-      ),
-    ).toStrictEqual(["[1,[,,9],9]"]);
-  });
-  it("should able to use mix of comma and bracket notation to access 2D array", async () => {
-    expect(
-      await outputOf(["A[1,2][2][3,1] <- 'abc'", "output A"].join("\n")),
-    ).toStrictEqual(["[[,[,[,,[abc]]]]]"]);
+  describe("must be named with a valid identifier", async () => {
+    test.for(["1A <- 1", "A- <- 1", "A B <- 1", "A$ <- 1"])(
+      "%s -> PSCSyntaxError",
+      async (a) => {
+        await expect(() => running(a)).rejects.toThrow(PSCSyntaxError);
+      },
+    );
+    test.for(["A <- 1", "_A <- 1", "A1 <- 1", "A_ <- 1", "A_B <- 1"])(
+      "%s -> ok",
+      async (a) => {
+        await expect(() => running(a)).not.toThrow();
+      },
+    );
   });
 });
 
-describe("execute control flow statements", () => {
-  describe("if statement", () => {
-    it("should run if body when condition is true", async () => {
-      const code = ["if 1=1", "  output 'A'", "else", "  output 'B'"].join(
-        "\n",
+describe("statements", () => {
+  describe("if-else", () => {
+    it("should execute the block based on the condition", async () => {
+      const code = ["if x=1", "  output true"];
+      await expect(outputOf(["x <- 1"].concat(code))).resolves.toStrictEqual([
+        "true",
+      ]);
+      await expect(outputOf(["x <- 0"].concat(code))).resolves.toStrictEqual(
+        [],
       );
-      expect(await outputOf(code)).toStrictEqual(["A"]);
     });
-    it("should run else body when condition is false", async () => {
-      const code = ["if 1=2", "  output 'A'", "else", "  output 'B'"].join(
-        "\n",
-      );
-      expect(await outputOf(code)).toStrictEqual(["B"]);
+    it("should optionally accept an else block", async () => {
+      const code = ["if x=1", "  output true", "else", "  output false"];
+      await expect(outputOf(["x <- 1"].concat(code))).resolves.toStrictEqual([
+        "true",
+      ]);
+      await expect(outputOf(["x <- 0"].concat(code))).resolves.toStrictEqual([
+        "false",
+      ]);
     });
-    it("should run if else body correctly", async () => {
+    it("should optionally accept an else if block", async () => {
       const code = [
-        "if 1=2",
-        "  output 'A'",
-        "else if 1=3",
-        "  output 'B'",
-        "else if 1=1",
-        "  output 'C'",
+        "if x=1",
+        "  output true",
+        "else if x=2",
+        "  output false",
         "else",
-        "  output 'D'",
-      ].join("\n");
-      expect(await outputOf(code)).toStrictEqual(["C"]);
+        "  output null",
+      ];
+      await expect(outputOf(["x <- 1"].concat(code))).resolves.toStrictEqual([
+        "true",
+      ]);
+      await expect(outputOf(["x <- 2"].concat(code))).resolves.toStrictEqual([
+        "false",
+      ]);
+      await expect(outputOf(["x <- 3"].concat(code))).resolves.toStrictEqual([
+        "null",
+      ]);
     });
-    it("should throw if condition is not boolean", async () => {
-      const code = ["if 1", "  1"].join("\n");
+    it("should throw ConditionNotBooleanError if the condition is not boolean", async () => {
+      const code = ["if 1", "  output true"];
       await expect(() => running(code)).rejects.toThrow(
         ConditionNotBooleanError,
       );
     });
   });
-  describe("while loop", () => {
-    it("should run while loop correctly", async () => {
-      const code = [
-        "A<-0",
-        "while A < 4",
-        "  output A",
-        "  A<-A+1",
-        "  output A",
-        "output A",
-      ].join("\n");
-      expect(await outputOf(code)).toStrictEqual([
+  describe("while", () => {
+    it("should execute the block while the condition is true", async () => {
+      const code = ["x <- 0", "while x < 5", "  output x", "  x <- x + 1"];
+      await expect(outputOf(code)).resolves.toStrictEqual([
         "0",
         "1",
-        "1",
-        "2",
         "2",
         "3",
-        "3",
-        "4",
         "4",
       ]);
     });
-    it("should throw if condition is not boolean", async () => {
-      const code = ["while 1", "  1"].join("\n");
+    it("should never execute the block if the condition is false", async () => {
+      const code = ["x <- 5", "while x < 5", "  output x", "  x <- x + 1"];
+      await expect(outputOf(code)).resolves.toStrictEqual([]);
+    });
+    it("should throw ConditionNotBooleanError if the condition is not boolean", async () => {
+      const code = ["x <- 0", "while x", "  output x", "  x <- x + 1"];
       await expect(() => running(code)).rejects.toThrow(
         ConditionNotBooleanError,
       );
-    });
-  });
-  describe("do-while loop", () => {
-    it("should run do-while loop correctly", async () => {
-      const code = [
-        "A<-0",
-        "do",
-        "  output A",
-        "  A<-A+1",
-        "  output A",
-        "while A < 4",
-        "output A",
-      ].join("\n");
-      expect(await outputOf(code)).toStrictEqual([
-        "0",
-        "1",
-        "1",
-        "2",
-        "2",
-        "3",
-        "3",
-        "4",
-        "4",
-      ]);
-    });
-    it("should throw if condition is not boolean", async () => {
-      const code = ["do", "  1", "while 1"].join("\n");
-      await expect(() => running(code)).rejects.toThrow(
-        ConditionNotBooleanError,
-      );
-    });
-  });
-  describe("repeat-until loop", () => {
-    it("should run repeat-until loop correctly", async () => {
-      const code = [
-        "A<-0",
-        "repeat",
-        "  output A",
-        "  A<-A+1",
-        "  output A",
-        "until A >= 4",
-        "output A",
-      ].join("\n");
-      expect(await outputOf(code)).toStrictEqual([
-        "0",
-        "1",
-        "1",
-        "2",
-        "2",
-        "3",
-        "3",
-        "4",
-        "4",
-      ]);
-    });
-    it("should throw if condition is not boolean", async () => {
-      const code = ["repeat", "  1", "until 1"].join("\n");
-      await expect(() => running(code)).rejects.toThrow(
-        ConditionNotBooleanError,
-      );
-    });
-  });
-  describe("for loop", () => {
-    it("should run ascending for loop correctly", async () => {
-      const code = ["for i from 1 to 4", "  output i"].join("\n");
-      expect(await outputOf(code)).toStrictEqual(["1", "2", "3", "4"]);
-    });
-    it("should run descending for loop correctly", async () => {
-      const code = ["for i from 4 down to 1", "  output i"].join("\n");
-      expect(await outputOf(code)).toStrictEqual(["4", "3", "2", "1"]);
-    });
-    it("should not run for loop body if start > end", async () => {
-      const code = ["for i from 4 to 1", "  output i"].join("\n");
-      expect(await outputOf(code)).toStrictEqual([]);
-    });
-    it("should delete for loop variable at the end", async () => {
-      const code = ["for i from 4 to 1", "  1", "output i"].join("\n");
-      await expect(() => running(code)).rejects.toThrow(
-        AccessNonExistingVariableError,
-      );
-    });
-    it("should throw if start/end is not number", async () => {
-      const code = ["for i from 'a' to 'b'", "  1"].join("\n");
-      await expect(() => running(code)).rejects.toThrow(ForRangeNotNumberError);
     });
   });
 
-  it("should be able to nest", async () => {
-    const code = [
-      "for i from 1 to 2",
-      "  A <- 0",
-      "  while A < 100",
-      "    output A",
-      "    if 1=1",
-      "      A <- A + 10",
-      "      if false",
-      "        1",
-      "      do",
-      "        A <- A + 20",
-      "        output A",
-      "      while A % 3 = 1",
-      "      if false",
-      "        1",
-      "      if true",
-      "        A <- A - 1",
-      "        if true",
-      "          A <- A + 9",
-    ].join("\n");
-    expect(await outputOf(code)).toStrictEqual([
-      "0",
-      "30",
-      "38",
-      "68",
-      "76",
-      "106",
-      "126",
-      "0",
-      "30",
-      "38",
-      "68",
-      "76",
-      "106",
-      "126",
-    ]);
+  describe("do-while", () => {
+    it("should execute the block while the condition is true", async () => {
+      const code = [
+        "x <- 0",
+        "do",
+        "  output x",
+        "  x <- x + 1",
+        "while x < 5",
+      ];
+      await expect(outputOf(code)).resolves.toStrictEqual([
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+      ]);
+    });
+    it("should execute the block at least once", async () => {
+      const code = [
+        "x <- 0",
+        "do",
+        "  output x",
+        "  x <- x + 1",
+        "while x > 5",
+      ];
+      await expect(outputOf(code)).resolves.toStrictEqual(["0"]);
+    });
+    it("should throw ConditionNotBooleanError if the condition is not boolean", async () => {
+      const code = ["x <- 0", "do", "  output x", "  x <- x + 1", "while x"];
+      await expect(() => running(code)).rejects.toThrow(
+        ConditionNotBooleanError,
+      );
+    });
+  });
+
+  describe("repeat-until", () => {
+    it("should execute the block until the condition is true", async () => {
+      const code = [
+        "x <- 0",
+        "repeat",
+        "  output x",
+        "  x <- x + 1",
+        "until x >= 5",
+      ];
+      await expect(outputOf(code)).resolves.toStrictEqual([
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+      ]);
+    });
+    it("should execute the block at least once", async () => {
+      const code = [
+        "x <- 0",
+        "repeat",
+        "  output x",
+        "  x <- x + 1",
+        "until x <= 5",
+      ];
+      await expect(outputOf(code)).resolves.toStrictEqual(["0"]);
+    });
+    it("should throw ConditionNotBooleanError if the condition is not boolean", async () => {
+      const code = [
+        "x <- 0",
+        "repeat",
+        "  output x",
+        "  x <- x + 1",
+        "until x",
+      ];
+      await expect(() => running(code)).rejects.toThrow(
+        ConditionNotBooleanError,
+      );
+    });
+  });
+
+  describe("for", () => {
+    it("should execute the block for the specified range", async () => {
+      const code = ["for i from 1 to 5", "  output i"];
+      await expect(outputOf(code)).resolves.toStrictEqual([
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+      ]);
+    });
+    it("should execute the block for the specified range in reverse", async () => {
+      const code = ["for i from 5 down to 1", "  output i"];
+      await expect(outputOf(code)).resolves.toStrictEqual([
+        "5",
+        "4",
+        "3",
+        "2",
+        "1",
+      ]);
+    });
+    it("should throw RangeNotNumberError if the range is not an integer", async () => {
+      await expect(() =>
+        running(["for i from 'a' to 5", "  output i"]),
+      ).rejects.toThrow(ForRangeNotIntegerError);
+      await expect(() =>
+        running(["for i from 5 to 'a'", "  output i"]),
+      ).rejects.toThrow(ForRangeNotIntegerError);
+      await expect(() =>
+        running(["for i from 1.2 to 4.3", "  output i"]),
+      ).rejects.toThrow(ForRangeNotIntegerError);
+    });
+    it("should throw ForVariableReuseError if the loop variable is reused", async () => {
+      await expect(() =>
+        running(["for i from 1 to 5", "  for i from 1 to 5", "    output i"]),
+      ).rejects.toThrow(ForVariableReuseError);
+      await expect(() =>
+        running(["i <- 1", "for i from 1 to 5", "  output i"]),
+      ).rejects.toThrow(ForVariableReuseError);
+    });
+  });
+
+  describe("io", () => {
+    it("should output correctly", async () => {
+      const code = ["output 1", "output 'hello'", "output true", "output null"];
+      await expect(outputOf(code)).resolves.toStrictEqual([
+        "1",
+        '"hello"',
+        "true",
+        "null",
+      ]);
+    });
+    it("should input correctly", async () => {
+      const code = ["input x", "output x"];
+      await expect(
+        outputOf(code, { inputFunction: async () => "hello" }),
+      ).resolves.toStrictEqual(['"hello"']);
+    });
+  });
+
+  describe("assignments", () => {
+    it("should assign and reassign variables correctly", async () => {
+      const code = ["x <- 1", "output x", "x <- 2", "output x"];
+      await expect(outputOf(code)).resolves.toStrictEqual(["1", "2"]);
+    });
+    it("should assign values to array elements correctly", async () => {
+      const code = ["x <- [1, 2, 3]", "output x", "x[1] <- 4", "output x"];
+      await expect(outputOf(code)).resolves.toStrictEqual([
+        "[1,2,3]",
+        "[4,2,3]",
+      ]);
+    });
+    describe("array element assignment", () => {
+      it("should implicitly create an array", async () => {
+        const code = ["x[1] <- 1", "output x"];
+        await expect(outputOf(code)).resolves.toStrictEqual(["[1]"]);
+      });
+      it("should implicitly extend an array", async () => {
+        await expect(
+          outputOf(["x <- [1]", "x[5] <- 3", "output x"]),
+        ).resolves.toStrictEqual(["[1,,,,3]"]);
+      });
+      describe("should implicitly extend/create array if necessary automatically", () => {
+        test.for([
+          [["x[4,1,2] <- 4", "output x"], ["[,,,[[,4]]]"]],
+          [["x <- [1,2]", "x[4] <- 4", "output x"], ["[1,2,,4]"]],
+          [["x <- [1,[]]", "x[2][4] <- 2", "output x"], ["[1,[,,,2]]"]],
+          [["x <- [1,[]]", "x[2,4] <- 2", "output x"], ["[1,[,,,2]]"]],
+          [
+            ["x <- [1,[]]", "x[2,4,2,2] <- 2", "output x"],
+            ["[1,[,,,[,[,2]]]]"],
+          ],
+        ])("%s", async ([a, b]) => {
+          await expect(outputOf(a!)).resolves.toStrictEqual(b);
+        });
+      });
+
+      describe("should throw ArrayAccessNotArrayError if the variable is not an array", () => {
+        test.for([
+          ["x <- 1", "x[1] <- 2"],
+          ["x <- [[12],'a']", "x[2][1] <- 2"],
+          ["x <- [[12],'a']", "x[2,1] <- 2"],
+        ])("%s", async ([a, b]) => {
+          await expect(() => running([a!, b!])).rejects.toThrow(
+            ArrayAccessNotArrayError,
+          );
+        });
+      });
+    });
   });
 });
 
 describe("subprograms", () => {
-  it("should be able to define and call subprograms", async () => {
-    const code = ["subprogram A(x)", "  output x+1", "A(1)", "A(2)"].join("\n");
-    expect(await outputOf(code)).toStrictEqual(["2", "3"]);
+  it("can define a subprogram with no arguments and call it", async () => {
+    const code = ["subprogram hello()", "  output 'hello'", "hello()"];
+    await expect(outputOf(code)).resolves.toStrictEqual(['"hello"']);
   });
-  it("should be able to define and call subprograms with multiple parameters", async () => {
+  it("can define a subprogram with multiple arguments and call it", async () => {
+    const code = ["subprogram add(a, b)", "  return a + b", "output add(1, 2)"];
+    await expect(outputOf(code)).resolves.toStrictEqual(["3"]);
+  });
+  it("can return a value from a subprogram", async () => {
+    const code = ["subprogram add(a, b)", "  return a + b", "output add(1, 2)"];
+    await expect(outputOf(code)).resolves.toStrictEqual(["3"]);
+  });
+  it("should return null if no return statement is executed in a subprogram", async () => {
+    const code = ["subprogram add(a, b)", "  output a + b", "output add(1, 2)"];
+    await expect(outputOf(code)).resolves.toStrictEqual(["3", "null"]);
+  });
+  it("must be defined before all statements", async () => {
+    const code = ["output add(1, 2)", "subprogram add(a, b)", "  return a + b"];
+    await expect(() => running(code)).rejects.toThrow(PSCSyntaxError);
+  });
+  it("should define a subprogram as a variable in the global scope", async () => {
     const code = [
-      "subprogram A(x, y)",
-      "  output x + y",
-      "A(1, 2)",
-      "A(2, 3)",
-    ].join("\n");
-    expect(await outputOf(code)).toStrictEqual(["3", "5"]);
-  });
-  it("should throw if calling subprogram with wrong number of parameters", async () => {
-    const code = ["subprogram A(x, y)", "  output x + y", "A(1)"].join("\n");
+      "subprogram add(a, b)",
+      "  return a + b",
+      "output add",
+      "output add(1, 2)",
+      "A[1] <- add",
+      "output A[1](1, 2)",
+      "A <- 1",
+    ];
+    await expect(outputOf(code)).resolves.toStrictEqual([
+      "[Function]",
+      "3",
+      "3",
+    ]);
+    code.push("output A(1, 2)");
     await expect(() => running(code)).rejects.toThrow(
-      "Subprogram A expects 2 parameters, but got 1",
+      OperationValueTypeMismatchError,
     );
   });
-  it("should assign subprogram to variable", async () => {
+  it("should throw AccessNonExistingVariableError if accessing local variables inside a subprogram from outside", async () => {
     const code = [
-      "subprogram A(x)",
-      "  output x+1",
-      "subprogram A2(x)",
-      "  output x+2",
-      "B[1] <- A",
-      "B[2] <- A2",
-      "B[1](1)",
-      "B[2](2)",
-    ].join("\n");
-    expect(await outputOf(code)).toStrictEqual(["2", "4"]);
+      "subprogram test()",
+      "  x <- 2",
+      "  y <- 1",
+      "  output x",
+      "x <- 1",
+      "output x",
+      "test()",
+      "output x",
+    ];
+    await expect(outputOf(code)).resolves.toStrictEqual(["1", "2", "2"]);
+    code.push("output y");
+    await expect(() => running(code)).rejects.toThrow(
+      AccessNonExistingVariableError,
+    );
+  });
+  it("should throw OperationValueTypeMismatchError if a non-function is called as a function", async () => {
+    const code = ["x <- 1", "output x()"];
+    await expect(() => running(code)).rejects.toThrow(
+      OperationValueTypeMismatchError,
+    );
+  });
+  it("should throw UnmatchedArgumentsError if a function is called with the wrong number of arguments", async () => {
+    const code = ["subprogram test(a)", "  return a", "output test()"];
+    await expect(() => running(code)).rejects.toThrow(UnmatchedArgumentsError);
   });
 });
 
-describe("error message", () => {
-  it("should show correct error line col", async () => {
-    const code = ["1", "2", "33333333", "44", "output ABC + 1", "4444"].join(
-      "\n",
-    );
-    await expect(() => running(code)).rejects.toThrow("(at ln 5 col 7)");
-  });
-
-  it("should show correct error line col", async () => {
-    const code = ["1", "2", "while 123 + 2", "  1"].join("\n");
-    await expect(() => running(code)).rejects.toThrow(
-      "(from ln 3 col 6 to ln 3 col 12)",
-    );
-  });
-});
-
-describe("interpreter options", () => {
-  it("should be able to change array start index", async () => {
-    const code = ["A <- [1,2,3]", "output A[1]"].join("\n");
-    expect(await outputOf(code, { arrayStartIndex: 0 })).toStrictEqual(["2"]);
-    expect(await outputOf(code, { arrayStartIndex: 1 })).toStrictEqual(["1"]);
-  });
-
-  it("should be able to change output function", async () => {
-    const code = ["output 1", "output 2"].join("\n");
-    const out: string[] = [];
-    await interpret(code, { outputFunction: (s) => out.push(s) });
-    expect(out).toStrictEqual(["1", "2"]);
-  });
-
-  it("should be able to change input function", async () => {
-    const code = ["input A", "output A"].join("\n");
-    await interpret(code, {
-      inputFunction: () => Promise.resolve("1"),
-      outputFunction: (s) => expect(s).toBe("1"),
+describe("options", () => {
+  describe("strictVariableScope", () => {
+    it("should have correct scope if strictVariableScope is enabled", async () => {
+      const code = [
+        "x <- 1",
+        "if true",
+        "  output x",
+        "  x <- 2",
+        "  y <- 3",
+        "  output x",
+        "  output y",
+        "output x",
+      ];
+      await expect(
+        outputOf(code, { strictVariableScope: true }),
+      ).resolves.toStrictEqual(["1", "2", "3", "2"]);
+      code.push("output y");
+      await expect(() =>
+        running(code, { strictVariableScope: true }),
+      ).rejects.toThrow(AccessNonExistingVariableError);
+    });
+    it("should have correct scope if strictVariableScope is disabled", async () => {
+      const code = [
+        "x <- 1",
+        "if true",
+        "  output x",
+        "  x <- 2",
+        "  y <- 3",
+        "  output x",
+        "  output y",
+        "output x",
+        "output y",
+      ];
+      await expect(
+        outputOf(code, { strictVariableScope: false }),
+      ).resolves.toStrictEqual(["1", "2", "3", "2", "3"]);
     });
   });
+  describe("arrayStartIndex", () => {
+    it("should have correct array starting index if arrayStartIndex is set", async () => {
+      const code = [
+        "arr <- [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]",
+        "output arr[3]",
+        "output arr[4]",
+        "output arr[5]",
+      ];
+      await expect(
+        outputOf(code, { arrayStartIndex: 0 }),
+      ).resolves.toStrictEqual(["4", "5", "6"]);
+      await expect(
+        outputOf(code, { arrayStartIndex: 1 }),
+      ).resolves.toStrictEqual(["3", "4", "5"]);
+      await expect(
+        outputOf(code, { arrayStartIndex: 2 }),
+      ).resolves.toStrictEqual(["2", "3", "4"]);
+    });
+  });
+});
 
-  it("should be able to use strict variable scope", async () => {
-    const code = ["A <- 1", "if true", "  B <- 2", "output B"].join("\n");
-    await expect(() =>
-      outputOf(code, { strictVariableScope: true }),
-    ).rejects.toThrow(AccessNonExistingVariableError);
-    expect(await outputOf(code, { strictVariableScope: false })).toStrictEqual([
-      "2",
-    ]);
+describe("comments", () => {
+  it("should ignore comments", async () => {
+    const code = [
+      "x <- 1 # This is a comment",
+      "output x # This is another comment",
+      "# This is a full line comment",
+      "y <- 2",
+      "output y",
+    ];
+    await expect(outputOf(code)).resolves.toStrictEqual(["1", "2"]);
+    await expect(
+      outputOf(code.map((x) => x.replace("#", "//"))),
+    ).resolves.toStrictEqual(["1", "2"]);
   });
 });

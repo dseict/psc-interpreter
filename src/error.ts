@@ -11,6 +11,12 @@ function generateLineColMessage(ctx: ParserRuleContext) {
   }
 }
 
+export class PSCSyntaxError extends Error {
+  constructor(line: number, column: number, msg: string) {
+    super(`Syntax error at line ${line}, column ${column}: ${msg}`);
+  }
+}
+
 export class AccessNonExistingVariableError extends Error {
   constructor(ctx: ParserRuleContext | undefined, variable: string) {
     super(
@@ -40,10 +46,10 @@ export class ConditionNotBooleanError extends Error {
   }
 }
 
-export class ForRangeNotNumberError extends Error {
+export class ForRangeNotIntegerError extends Error {
   constructor(ctx: ParserRuleContext | undefined, got: string) {
     super(
-      `For loop range must evaluate to a number, got ${got}. ${ctx && generateLineColMessage(ctx)}`,
+      `For loop range must evaluate to an integer, got ${got}. ${ctx && generateLineColMessage(ctx)}`,
     );
   }
 }
@@ -71,7 +77,7 @@ export class ArrayAccessNotArrayError extends Error {
   }
 }
 
-export class UnmatchedParameterError extends Error {
+export class UnmatchedArgumentsError extends Error {
   constructor(
     ctx: ParserRuleContext | undefined,
     name: string,
@@ -79,7 +85,7 @@ export class UnmatchedParameterError extends Error {
     gotParams: number,
   ) {
     super(
-      `Subprogram ${name} expects ${expectedParams} parameters, but got ${gotParams}. ${ctx && generateLineColMessage(ctx)}`,
+      `Subprogram ${name} expects ${expectedParams} arguments, but got ${gotParams}. ${ctx && generateLineColMessage(ctx)}`,
     );
   }
 }

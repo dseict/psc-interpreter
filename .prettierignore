@@ -2,5 +2,5 @@
 !.gitignore
 node_modules/
 dist/
-
-src/antlr/
+src/_antlr/
+coverage/
