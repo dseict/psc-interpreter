@@ -1,14 +1,35 @@
 # Program
 
+A program consists of 2 parts:
+
+- Subprogram definitions
+- Main statements
+
+Main statements must come after subprogram definitions.
+
+# Comments
+
+Comments are used to add explanatory notes to the code. They are ignored by the interpreter.
+
+Comments are represented by text after a `#` or `//` symbol, and continue until the end of the line.
+
+For example:
+
+```psc
+# This is a comment
+// This is also a comment
+output "Hello, World!" # This is a comment after a statement
+```
+
 # Data types
 
 ## String
 
-String is a sequence of characters.
+A string is a sequence of characters.
 
 ### String literal
 
-String literals are represented by texts enclosed by a pair of single quotes (`'`) or double quotes (`"`).
+String literals are represented by text enclosed in a pair of single quotes (`'`) or double quotes (`"`).
 
 For example:
 
@@ -23,17 +44,32 @@ String literals are parsed strictly as is, meaning escape sequences are not inte
 For example:
 
 ```psc
-"\n" // valid, interpreted as "\n" instead of a newline character
-"\\" // valid, interpreted as "\\" instead of a single backslash
+"\n" // interpreted as "\n" instead of a newline character
+"\\" // interpreted as "\\" instead of a single backslash
 ```
 
-### Output of Strings
+### Output of strings
 
-Strings are outputted as is, enclosed by a pair of double quotes (`"`). Escape sequences are not interpreted.
+Strings are output as is, enclosed in a pair of double quotes (`"`). Escape sequences are not interpreted.
+
+### Smart Casting of strings
+
+A string is automatically converted to a number, boolean, or null value.
+
+Smart casting is done as follows:
+
+- If a string matches the following:
+  - `"true"` (case-insensitive)
+    - Parsed as a boolean `true`
+  - `"false"` (case-insensitive)
+    - Parsed as a boolean `false`
+  - `"null"` (case-insensitive)
+    - Parsed as a `null` value
+  - If the string matches `/^-?\d*(\.\d+)?$/` and it is not an empty string, then it is parsed as a number using JavaScript's `Number()` function.
 
 ## Number
 
-Number is a numeric value that can be either an integer or a floating-point number.
+A number is a numeric value that can be either an integer or a floating-point number.
 
 ### Number literals
 
@@ -50,21 +86,21 @@ For example:
 1 // valid
 5.5 // valid
 1.0 // valid
-001 // valid, interpreted as 1
+001 // interpreted as 1
 
 ```
 
-Number literals can be further modified with the unary operators `+` and `-` to indicate positive or negative values, respectively.
+Number literals can be further modified by the unary operators `+` and `-` to indicate positive or negative values, respectively.
 
-### Output of Numbers
+### Output of numbers
 
-Numbers are outputted in base-10 decimal format without leading or trailing zeros, and without a decimal point for integers.
+Numbers are output in base-10 decimal format without leading or trailing zeros, and without a decimal point for integers.
 
-Negative numbers are outputted with a leading `-` sign.
+Negative numbers are output with a leading `-` sign.
 
 ## Boolean
 
-Boolean is a logical value that can be either true or false.
+A boolean is a logical value that can be either true or false.
 
 ### Boolean literals
 
@@ -79,13 +115,13 @@ TruE // valid
 FaLsE // valid
 ```
 
-### Output of Booleans
+### Output of booleans
 
-Booleans are outputted in lowercase as `true` or `false`.
+Booleans are output in lowercase as `true` or `false`.
 
 ## Array
 
-Array is an ordered collection of values, which can be of any data type.
+An array is an ordered collection of values, which can be of any data type.
 
 ## Starting index
 
@@ -93,24 +129,24 @@ By default, array indexing is 1-based, meaning the first element of the array is
 
 ## Accessing elements
 
-Array access is done using the array indexing operator.
+Array elements are accessed using the array access operator.
 
 ### Array literals
 
-Array literals are represented by a comma-separated list of literals or expressions, enclosed by a pair of square brackets (`[ ]`).
+Array literals are represented by a comma-separated list of literals or expressions, enclosed in a pair of square brackets (`[ ]`).
 
 For example:
 
 ```psc
-[] // valid, empty array
+[] // empty array
 [1, 2, 3] // valid
 ["hello", "world"] // valid
-[A+1, B, "hello"] // valid, where A and B are variables
+[A+1, B, "hello"] // where A and B are variables
 ```
 
-### Output of Arrays
+### Output of arrays
 
-Arrays are outputted as a comma-separated list of values, enclosed by a pair of square brackets (`[ ]`), without any whitespace. Each value is outputted according to its data type.
+Arrays are output as a comma-separated list of values, enclosed in a pair of square brackets (`[ ]`), without any whitespace. Each value is output according to its data type.
 
 ## Null
 
@@ -118,11 +154,24 @@ Arrays are outputted as a comma-separated list of values, enclosed by a pair of 
 
 Null literals are represented by the keyword `null`, which is case-insensitive.
 
-### Output of Null
+### Output of null
 
-Null is outputted as `null`.
+Null is output as `null`.
 
 ## Undefined
+
+Undefined is not a defined data type. It is a special value that represents the absence of a value. It is mainly used to represent array elements without a value.
+
+### Output of undefined
+
+Undefined does not produce any output.
+
+For example:
+
+```psc
+A[3] <- 1
+output A // outputs [,,1]
+```
 
 # Expression
 
@@ -130,248 +179,258 @@ Expressions are made up of literals, variables, function calls, and operators. T
 
 ## Operators
 
-## Smart Casting of Strings
+Operators are symbols that perform operations on one or more operands in order to produce a new value.
 
-Smart casting is done as follows:
-
-- If a string matches the following:
-  - `true` (case-insensitive) -> true
-  - `false` (case-insensitive) -> false
-  - `null` (case-insensitive) -> null
-- Otherwise, try the parse it as a number
-  - If the string matches `/^-?\d*(\.\d+)?$/` and it is not an empty string, then it is parsed as a number using JavaScript's `Number()` function.
+If an operator is used on operands of incompatible types, an `OperationValueTypeMismatchError` is thrown.
 
 ## Arithmetic operators
 
-### Addition operator (`+`)
+### Addition operators (`+`)
 
-Addition operator is used for performing addition on two numbers or number-like string.
+An addition operator is used for performing addition on two numbers.
 
 For example:
 
 ```psc
-1 + 2 // valid, result is 3
-"1" + "2" // valid, result is 3
-2 + "2.0" // valid, result is 4
+1 + 2 // evaluates to 3
+"1" + "2" // evaluates to 3
+2 + "2.0" // evaluates to 4
 ```
 
-### Subtraction operator (`-`)
+### Subtraction operators (`-`)
 
-Subtraction operator is used for performing subtraction on two numbers or number-like string.
+A subtraction operator is used for performing subtraction on two numbers.
 
 For example:
 
 ```psc
-5 - 2 // valid, result is 3
-"5" - "2" // valid, result is 3
-"5.0" - 2 // valid, result is 3
+5 - 2 // evaluates to 3
+"5" - "2" // evaluates to 3
+"5.0" - 2 // evaluates to 3
 ```
 
-### Multiplication operator (`*`)
+### Multiplication operators (`*`)
 
-Multiplication operator is used for performing multiplication on two numbers or number-like string.
+A multiplication operator is used for performing multiplication on two numbers.
 
 For example:
 
 ```psc
-2 * 3 // valid, result is 6
-"2" * "3" // valid, result is 6
-"2.0" * 3 // valid, result is 6
+2 * 3 // evaluates to 6
+"2" * "3" // evaluates to 6
+"2.0" * 3 // evaluates to 6
 ```
 
-### Division operator (`/`)
+### Division operators (`/`)
 
-Division operator is used for performing division on two numbers or number-like string.
+A division operator is used for performing division on two numbers.
 
 For example:
 
 ```psc
-6 / 2 // valid, result is 3
-"6" / "2" // valid, result is 3
-"6.0" / 2 // valid, result is 3
+6 / 2 // evaluates to 3
+"6" / "2" // evaluates to 3
+"6.0" / 2 // evaluates to 3
 ```
 
-### Modulus operator (`%` / `mod`)
+### Modulus operators (`%` / `mod`)
 
-Modulus operator is used for performing modulus operation on two numbers or number-like string.
+A modulus operator is used for performing modulus operation on two numbers.
 
 For example:
 
 ```psc
-5 % 2 // valid, result is 1
-"5" mod "2" // valid, result is 1
-"5.0" % 2 // valid, result is 1
+5 % 2 // evaluates to 1
+"5" mod "2" // evaluates to 1
+"5.0" % 2 // evaluates to 1
 ```
 
-### Exponentiation operator (`^` / `**`)
+### Exponentiation operators (`^` / `**`)
 
-Exponentiation operator is used for performing exponentiation on two numbers or number-like string.
+An exponentiation operator is used for performing exponentiation on two numbers.
 
 For example:
 
 ```psc
-2 ^ 3 // valid, result is 8
-"2" ** "3" // valid, result is 8
-"2.0" ^ 3 // valid, result is 8
+2 ^ 3 // evaluates to 8
+"2" ** "3" // evaluates to 8
+"2.0" ^ 3 // evaluates to 8
 ```
 
 ## Comparison operators
 
-### Equality operator (`=`)
+### Equality operators (`=`)
 
-Equality operators are used for comparing two values of any type for equality.
-
-For example:
-
-```psc
-1 = 1 // valid, result is true
-"hello" = "hello" // valid, result is true
-1 = "1" // valid, result is true after smart casting
-1 = 2 // valid, result is false
-```
-
-### Inequality operator (`<>`)
-
-Inequality operators are used for comparing two values of any type for inequality.
+An equality operator is used for comparing two values of any type for equality.
 
 For example:
 
 ```psc
-1 <> 2 // valid, result is true
-"hello" <> "world" // valid, result is true
-1 <> "1" // valid, result is false after smart casting
+1 = 1 // evaluates to true
+"hello" = "hello" // evaluates to true
+1 = "1" // evaluates to true after smart casting
+1 = 2 // evaluates to false
 ```
 
-### Greater than operator (`>`)
+### Inequality operators (`<>`)
 
-Greater than operators are used for comparing two values of either number type or string type for greater than relationship.
+An inequality operator is used for comparing two values of any type for inequality.
 
 For example:
 
 ```psc
-2 > 1 // valid, result is true
-"b" > "a" // valid, result is true
-"abc" > "cba" // valid, result is false
-"2" > "1" // valid, result is true after smart casting
+1 <> 2 // evaluates to true
+"hello" <> "world" // evaluates to true
+1 <> "1" // evaluates to false after smart casting
 ```
 
-### Less than operator (`<`)
+### Greater than operators (`>`)
 
-Less than operators are used for comparing two values of either number type or string type for less than relationship.
+A greater than operator is used for comparing two values of either number type or string type for greater than relationship.
 
 For example:
 
 ```psc
-1 < 2 // valid, result is true
-"a" < "b" // valid, result is true
-"cba" < "abc" // valid, result is false
-"1" < "2" // valid, result is true after smart casting
+2 > 1 // evaluates to true
+"b" > "a" // evaluates to true
+"abc" > "cba" // evaluates to false
+"2" > "1" // evaluates to true after smart casting
 ```
 
-### Greater than or equal to operator (`>=`)
+### Less than operators (`<`)
 
-Greater than operators are used for comparing two values of either number type or string type for greater than or equal to relationship.
+A less than operator is used for comparing two values of either number type or string type for less than relationship.
 
 For example:
 
 ```psc
-1 >= 1 // valid, result is true
-"b" >= "a" // valid, result is true
-"abc" >= "cba" // valid, result is false
-"2" >= "1" // valid, result is true after smart casting
+1 < 2 // evaluates to true
+"a" < "b" // evaluates to true
+"cba" < "abc" // evaluates to false
+"1" < "2" // evaluates to true after smart casting
 ```
 
-### Less than or equal to operator (`<=`)
+### Greater than or equal to operators (`>=`)
 
-Less than operators are used for comparing two values of either number type or string type for less than or equal to relationship.
+A greater than operator is used for comparing two values of either number type or string type for greater than or equal to relationship.
 
 For example:
 
 ```psc
-1 <= 2 // valid, result is true
-"a" <= "b" // valid, result is true
-"cba" <= "abc" // valid, result is false
-"1" <= "2" // valid, result is true after smart casting
+1 >= 1 // evaluates to true
+"b" >= "a" // evaluates to true
+"abc" >= "cba" // evaluates to false
+"2" >= "1" // evaluates to true after smart casting
 ```
 
-## Logical AND operator (`and`)
+### Less than or equal to operators (`<=`)
 
-Logical AND operators are used for performing logical conjunction on two boolean values.
+A less than operator is used for comparing two values of either number type or string type for less than or equal to relationship.
+
+For example:
 
 ```psc
-true and true // valid, result is true
-true and false // valid, result is false
-false and true // valid, result is false
-false and false // valid, result is false
+1 <= 2 // evaluates to true
+"a" <= "b" // evaluates to true
+"cba" <= "abc" // evaluates to false
+"1" <= "2" // evaluates to true after smart casting
 ```
 
-## Logical OR operator (`or`)
+## Logical AND operators (`and`)
 
-Logical OR operators are used for performing logical disjunction on two boolean values.
+A logical and operator is used for performing logical conjunction on two boolean values.
 
 ```psc
-true or true // valid, result is true
-true or false // valid, result is true
-false or true // valid, result is true
-false or false // valid, result is false
+true and true // evaluates to true
+true and false // evaluates to false
+false and true // evaluates to false
+false and false // evaluates to false
 ```
 
-## Logical NOT operator (`not`)
+## Logical OR operators (`or`)
 
-Negation operators are used for negating a boolean value.
+A logical or operator is used for performing logical disjunction on two boolean values.
 
 ```psc
-not true // valid, result is false
-not false // valid, result is true
+true or true // evaluates to true
+true or false // evaluates to true
+false or true // evaluates to true
+false or false // evaluates to false
+```
+
+## Logical NOT operators (`not`)
+
+A negation operator is used for negating a boolean value.
+
+```psc
+not true // evaluates to false
+not false // evaluates to true
 ```
 
 ## Unary operators
 
-### Unary negation operator (`-`)
+### Unary negation operators (`-`)
 
-Unary negation operators are used for negating a number or number-like string.
+A unary negation operator is used for negating a number.
 
 ```psc
--1 // valid, result is -1
--"1" // valid, result is -1 after smart casting
---1 // valid, result is 1
+-1 // evaluates to -1
+-"1" // evaluates to -1 after smart casting
+--1 // evaluates to 1
 ```
 
-### Unary positive operator (`+`)
+### Unary positive operators (`+`)
 
-Unary positive operators are used to explicitly indicate a positive number or number-like string. It does not perform any operation on the value.
+A unary positive operator is used to explicitly indicate a positive number. It does not perform any operation on the value.
 
-## Grouping operator (`(` and `)`)
+## Grouping operators (`(` and `)`)
 
-Group operators are used to group expressions and control the order of evaluation. Expressions within parentheses are evaluated first, before any other operations outside the parentheses.
+A group operator is used to group expressions and control the order of evaluation. Expressions within parentheses are evaluated first, before any other operations outside the parentheses.
 
 For example:
 
 ```psc
-(1 + 2) * 3 // valid, result is 9
-1 + (2 * 3) // valid, result is 7
+(1 + 2) * 3 // evaluates to 9
+1 + (2 * 3) // evaluates to 7
 ```
 
-## Array indexing operator (`[` and `]`)
+## Array access operators (`[` and `]`)
 
-Array indexing operators are placed after an array to access a specific element recursively by its comma-separated indices, which are enclosed in the square brackets. The index is 1-based, meaning the first element of the array is at index 1.
+An array access operator is placed after an array to access a specific element recursively by its comma-separated indices, which are enclosed in the square brackets. The index is 1-based by default.
 
 For example:
 
 ```psc
 // assuming 1-based indexing
-[1, 2, 3][1] // valid, result is 1
-["a", "b", "c"][2] // valid, result is "b"
-[[1, 2], [3, 4]][2][1] // valid, result is 3
+[1, 2, 3][1] // evaluates to 1
+["a", "b", "c"][2] // evaluates to "b"
+[[1, 2], [3, 4]][2][1] // evaluates to 3
+[[1, 2], [3, 4]][2, 1] // evaluates to 3
 ```
 
-## Subprogram call operator (`(` and `)`)
+If the index is out of bounds or invalid, `InvalidArrayIndexError` is thrown.
 
-// TODO
+If using the operator on a non-array value, an `ArrayAccessNotArrayError` is thrown.
+
+## Subprogram call operators (`(` and `)`)
+
+A subprogram call operator is placed after a subprogram name to call the subprogram. Inside the parentheses, a comma-separated list of arguments can be provided to pass values to the subprogram.
+
+For example:
+
+```psc
+subprogram add(a, b)
+  return a + b
+add(1, 2) // call subprogram add with arguments 1 and 2
+```
+
+If a subprogram is called with the wrong number of arguments, `UnmatchedArgumentsError` is thrown.
+
+If the operator is used on a non-subprogram value, `OperationValueTypeMismatchError` is thrown.
 
 ## Atom
 
-Atom is the most basic unit of an expression. It can be a literal or an identifier (variable name).
+An atom is the most basic unit of an expression. It can be a literal or an identifier (variable name).
 
 # Variables
 
@@ -400,7 +459,7 @@ Variables have a scope, which is the region of the program where they can be acc
 
 Variables declared in the global scope are accessible throughout the program, while variables declared within a subprogram are only accessible within that subprogram.
 
-Variable scoping are implemented using a stack of scopes. When a subprogram is called, a new scope is pushed onto the stack. When the subprogram returns, the scope is popped off the stack.
+Variable scoping is implemented using a stack of scopes. When a subprogram is called, a new scope is pushed onto the stack. When the subprogram returns, the scope is popped off the stack.
 
 The bottom of the stack is the global scope, which is always present. The top of the stack is the current scope, which is where variables are declared.
 
@@ -410,14 +469,14 @@ For example:
 x <- 1 // global variable
 subprogram hello()
   y <- 2 // local variable
-  output x // valid, since x is in the global scope
-  output y // valid, since y is in the same local scope here
+  output x // since x is in the global scope
+  output y // since y is in the same local scope here
 hello()
-output x // valid, since x is in the global scope
+output x // since x is in the global scope
 output y // invalid, since y is only in the local scope of hello()
 ```
 
-When `strictVariableScope` is asserted, whenever a block is entered, a new scope is pushed onto the stack. When the block is exited, the scope is popped off the stack.
+When `strictVariableScope` is set, whenever a block is entered, a new scope is pushed onto the stack. When the block is exited, the scope is popped off the stack.
 
 For example:
 
@@ -425,9 +484,9 @@ For example:
 x <- 1 // global variable
 if true
   y <- 2 // local variable
-  output x // valid, since x is in the global scope
-  output y // valid, since y is in the same local scope here
-output x // valid, since x is in the global scope
+  output x // since x is in the global scope
+  output y // since y is in the same local scope here
+output x // since x is in the global scope
 output y // invalid, since y is only in the local scope of the if block
 ```
 
@@ -555,26 +614,28 @@ for i from 5 down to 1
 // output: 5, 4, 3, 2, 1
 ```
 
-If the starting or ending value evaluates to a non-integer value, a `ForRangeNotIntegerError` is thrown.
+If the starting or ending value evaluates to non-integer values, a `ForRangeNotIntegerError` is thrown.
+
+If the for loop variable is already defined, a `ForVariableReuseError` is thrown.
 
 ## Assignment statement
 
 Assignment statements are used to assign a value to a storage location.
 
-The left-hand side (LHS) of an assignment statement must be either of the following:
+The left-hand side (LHS) of an assignment statement must be one of the following:
 
 - An identifier
-- Another LHS followed by an array indexing operator
+- Another LHS followed by an array access operator
 
 For example:
 
 ```psc
-x <- 1 // valid, assigns 1 to variable x
-x <- 2 // valid, reassigns 2 to variable x
+x <- 1 // assigns 1 to variable x
+x <- 2 // reassigns 2 to variable x
 
-arr <- [1, 2, 3] // valid, assigns an array to variable arr
-arr[1] <- 4 // valid, assigns 4 to the first element of arr
-arr[2] <- 5 // valid, assigns 5 to the second element of arr
+arr <- [1, 2, 3] // assigns an array to variable arr
+arr[1] <- 4 // assigns 4 to the first element of arr
+arr[2] <- 5 // assigns 5 to the second element of arr
 ```
 
 ### Implicit creation and extension of arrays
@@ -585,15 +646,15 @@ If the LHS is an array access, and:
 - The index is greater than the current length of the array, the array is implicitly expanded to accommodate the new index, and all new elements are initialized to `undefined`.
 
 ```psc
-A[1] <- 1 // valid, A -> undefined -> implicitly declare as array of length 1
-A[1][1] <- 1 // valid, A -> undefined -> implicitly declare as array of length 1, A[1] -> undefined -> implicitly declare as array of length 1 and assign 1 to A[1][1]
+A[1] <- 1 // A -> undefined -> implicitly declare as array of length 1
+A[1][1] <- 1 // A -> undefined -> implicitly declare as array of length 1, A[1] -> undefined -> implicitly declare as array of length 1 and assign 1 to A[1][1]
 
 B <- [1]
-B[2] <- 2 // valid, B = [1, 2]
-B[4] <- 4 // valid, B = [1, 2,, 4]
+B[2] <- 2 // B = [1,2]
+B[4] <- 4 // B = [1,2,,4]
 
 C <- [1]
-C[3][1] <- 2 // valid, C = [1,, [2]]
+C[3][1] <- 2 // C = [1,,[2]]
 ```
 
 ## IO statements
@@ -633,16 +694,16 @@ When defining a subprogram, we are assigning a function to the global scope usin
 The `return` statement is used to explicitly return a value from a subprogram. If a subprogram does not have a `return` statement, it will return `null` by default.
 
 ```psc
-subprogram add(a,b) // valid, a subprogram that takes two arguments a and b
+subprogram add(a,b) // a subprogram that takes two arguments a and b
   return a + b // returns the sum of a and b
-subprogram hello() // valid, a subprogram that takes no arguments
+subprogram hello() // a subprogram that takes no arguments
   output "Hello, World!" // returns null by default
 ```
 
-Subprogram must be defined at the top of the file, before any other statements.
+Subprograms must be defined at the top of the file, before any other statements.
 
 ```psc
-subprogram add(a, b) // valid, defined at the top of the file
+subprogram add(a, b) // defined at the top of the file
   return a + b
 
 add(1, 2) // returns 3
@@ -650,3 +711,7 @@ add(1, 2) // returns 3
 subprogram subtract(a, b) // syntax error, defined after other statements
   return a - b
 ```
+
+## Calling a subprogram
+
+A subprogram is called using the subprogram call operator.
