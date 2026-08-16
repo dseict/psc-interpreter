@@ -1,4 +1,28 @@
 {
+  "name": "psc-interpreter",
+  "version": "0.0.1",
+  "description": "A DSE-style pseudocode interpreter written in TypeScript.",
+  "keywords": [
+    "dse",
+    "pseudocode",
+    "interpreter",
+    "typescript"
+  ],
+  "homepage": "https://github.com/dseict/psc-interpreter",
+  "license": "MIT",
+  "author": {
+    "name": "patrickwassmart"
+  },
+  "files": [
+    "dist"
+  ],
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dseict/psc-interpreter.git"
+  },
   "dependencies": {
     "antlr4": "^4.13.2"
   },
@@ -18,6 +42,7 @@
     "antlr": "cd src && rm -r -f ./antlr && antlr4 -o _antlr -Dlanguage=TypeScript -no-listener -visitor ./PSCLexer.g4 ./PSCParser.g4 && node --eval \"fs.writeFileSync('_antlr/PSCLexer.ts', fs.readFileSync('_antlr/PSCLexer.ts', 'utf-8').replace('./PSCLexerBase.js', '../PSCLexerBase.js'))\"",
     "format": "prettier . --write",
     "lint": "eslint .",
-    "verify": "pnpm format && pnpm lint && pnpm test"
+    "verify": "pnpm format && pnpm lint && pnpm test",
+    "build": "rm -r -f ./dist && tsc --project tsconfig.build.json"
   }
 }
