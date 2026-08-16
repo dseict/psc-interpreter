@@ -123,11 +123,11 @@ Booleans are output in lowercase as `true` or `false`.
 
 An array is an ordered collection of values, which can be of any data type.
 
-## Starting index
+### Starting index
 
 By default, array indexing is 1-based, meaning the first element of the array is at index 1. The starting index can be set using the option `arrayStartIndex`
 
-## Accessing elements
+### Accessing elements
 
 Array elements are accessed using the array access operator.
 
@@ -172,6 +172,12 @@ For example:
 A[3] <- 1
 output A // outputs [,,1]
 ```
+
+## Subprograms
+
+Subprograms are special data types that represent a block of code that can be called with or without arguments and must return a value.
+
+See more in the Subprograms section.
 
 # Expression
 
