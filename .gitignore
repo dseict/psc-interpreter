@@ -4,3 +4,4 @@ coverage/
 src/_antlr/
 .antlr
 .DS_Store
+.tools
