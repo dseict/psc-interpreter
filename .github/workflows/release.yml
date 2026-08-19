@@ -19,7 +19,7 @@ jobs:
         with:
           version: 8
       - name: Clean install dependencies
-        run: pnpm ci
+        run: pnpm install
       - name: Audit signatures
         run: pnpm audit signatures
       - name: Generate ANTLR files
@@ -50,8 +50,8 @@ jobs:
           version: 8
       - name: Generate ANTLR files
         run: pnpm run antlr
-      - name: Clean install dependencies
-        run: pnpm ci
+      - name: Install dependencies
+        run: pnpm install
       - name: Build
         run: pnpm run build
       - name: Release
