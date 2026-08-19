@@ -10,6 +10,6 @@ fi
 cd src
 rm -r -f ./antlr
 java -jar "../$ANTLR_BIN_PATH" -o _antlr -Dlanguage=TypeScript -no-listener -visitor ./PSCLexer.g4 ./PSCParser.g4
-node --eval "fs.writeFileSync('_antlr/PSCLexer.ts', fs.readFileSync('_antlr/PSCLexer.ts', 'utf-8').replace('./PSCLexerBase.js', '../PSCLexerBase.js'))"
+node --eval "fs.writeFileSync('_antlr/PSCLexer.ts', fs.readFileSync('_antlr/PSCLexer.ts', 'utf-8').replace('./PSCLexerBase', '../PSCLexerBase'))"
 
 echo "ANTLR files generated successfully."
