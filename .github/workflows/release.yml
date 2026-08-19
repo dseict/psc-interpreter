@@ -16,7 +16,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Verify and build
-        uses: ./.github/workflows/verify-and-build.yml
+        uses: ./.github/actions/verify-build
       - name: Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
