@@ -60,50 +60,28 @@ export type InterpreterOptions = {
   inputFunction?: () => Promise<string>;
 };
 
-export async function interpret(
-  code: string,
-  options?: Partial<InterpreterOptions>,
-): Promise<void> {
-  // Parse the code
-  const lexer = new PSCLexer(new CharStream(code));
-  lexer.removeErrorListeners();
-  lexer.addErrorListener(new PSCErrorListener());
-  const parser = new PSCParser(new CommonTokenStream(lexer));
-  parser.removeErrorListeners(); // Remove default error listeners
-  parser.addErrorListener(new PSCErrorListener());
-  const tree = parser.program();
-  // Execute the code
-  const interpreter = new PSCInterpreter({
-    strictVariableScope: false,
-    arrayStartIndex: 1,
-    ...options, // Override default options with user-provided options
-  });
-  await interpreter.visit(tree);
-}
+export class PSCInterpreter {
+  #visitor: PSCInterpretVisitor;
 
-function stringSmartCast(value: AllowedTypes): AllowedTypes {
-  if (typeof value === "string") {
-    // Try to cast to boolean
-    if (value.toLowerCase() === "true") {
-      return true;
-    }
-    if (value.toLowerCase() === "false") {
-      return false;
-    }
-    if (value.toLowerCase() === "null") {
-      return null;
-    }
-    // Handle ridiculous edge cases for JS built-in casting v_v
-    if (value.trim() === "" || !/^-?\d*(\.\d+)?$/.test(value)) {
-      return value; // Return as is
-    }
-    // Try to cast to number
-    const numValue = Number(value);
-    if (!isNaN(numValue)) {
-      return numValue;
-    }
+  constructor(options?: Partial<InterpreterOptions>) {
+    this.#visitor = new PSCInterpretVisitor({
+      strictVariableScope: false,
+      arrayStartIndex: 1,
+      ...options, // Override default options with user-provided options
+    });
   }
-  return value; // Return as is if no casting is possible
+
+  async interpret(code: string): Promise<void> {
+    // Parse the code
+    const lexer = new PSCLexer(new CharStream(code));
+    lexer.removeErrorListeners();
+    lexer.addErrorListener(new PSCErrorListener());
+    const parser = new PSCParser(new CommonTokenStream(lexer));
+    parser.removeErrorListeners(); // Remove default error listeners
+    parser.addErrorListener(new PSCErrorListener());
+    const tree = parser.program();
+    await this.#visitor.visit(tree);
+  }
 }
 
 type Function = (params: AllowedTypes[]) => Promise<AllowedTypes>;
@@ -111,7 +89,7 @@ type Function = (params: AllowedTypes[]) => Promise<AllowedTypes>;
 type AllowedTypes =
   string | number | boolean | AllowedTypes[] | null | Function | undefined;
 
-class PSCInterpreter extends PSCParserVisitor<
+class PSCInterpretVisitor extends PSCParserVisitor<
   Promise<AllowedTypes | Ref | void>
 > {
   options: InterpreterOptions;
@@ -123,6 +101,31 @@ class PSCInterpreter extends PSCParserVisitor<
   constructor(options: InterpreterOptions) {
     super();
     this.options = options;
+  }
+
+  stringSmartCast(value: AllowedTypes): AllowedTypes {
+    if (typeof value === "string") {
+      // Try to cast to boolean
+      if (value.toLowerCase() === "true") {
+        return true;
+      }
+      if (value.toLowerCase() === "false") {
+        return false;
+      }
+      if (value.toLowerCase() === "null") {
+        return null;
+      }
+      // Handle ridiculous edge cases for JS built-in casting v_v
+      if (value.trim() === "" || !/^-?\d*(\.\d+)?$/.test(value)) {
+        return value; // Return as is
+      }
+      // Try to cast to number
+      const numValue = Number(value);
+      if (!isNaN(numValue)) {
+        return numValue;
+      }
+    }
+    return value; // Return as is if no casting is possible
   }
 
   assignVariable(
@@ -247,9 +250,11 @@ class PSCInterpreter extends PSCParserVisitor<
   };
 
   override visitOrExpr = async (ctx: OrExprContext): Promise<AllowedTypes> => {
-    let result = stringSmartCast(await this.visitAndExpr(ctx.andExpr(0)));
+    let result = this.stringSmartCast(await this.visitAndExpr(ctx.andExpr(0)));
     for (let i = 1; i < ctx.andExpr_list().length; i++) {
-      const right = stringSmartCast(await this.visitAndExpr(ctx.andExpr(i)));
+      const right = this.stringSmartCast(
+        await this.visitAndExpr(ctx.andExpr(i)),
+      );
       const resultBool = typeof result == "boolean";
       const rightBool = typeof right == "boolean";
       if (!resultBool || !rightBool) {
@@ -268,9 +273,13 @@ class PSCInterpreter extends PSCParserVisitor<
   override visitAndExpr = async (
     ctx: AndExprContext,
   ): Promise<AllowedTypes> => {
-    let result = stringSmartCast(await this.visitCompExpr(ctx.compExpr(0)));
+    let result = this.stringSmartCast(
+      await this.visitCompExpr(ctx.compExpr(0)),
+    );
     for (let i = 1; i < ctx.compExpr_list().length; i++) {
-      const right = stringSmartCast(await this.visitCompExpr(ctx.compExpr(i)));
+      const right = this.stringSmartCast(
+        await this.visitCompExpr(ctx.compExpr(i)),
+      );
       const resultBool = typeof result == "boolean";
       const rightBool = typeof right == "boolean";
       if (!resultBool || !rightBool) {
@@ -290,9 +299,11 @@ class PSCInterpreter extends PSCParserVisitor<
   override visitCompExpr = async (
     ctx: CompExprContext,
   ): Promise<AllowedTypes> => {
-    let result = stringSmartCast(await this.visitAddExpr(ctx.addExpr(0)));
+    let result = this.stringSmartCast(await this.visitAddExpr(ctx.addExpr(0)));
     for (let i = 1; i < ctx.addExpr_list().length; i++) {
-      const right = stringSmartCast(await this.visitAddExpr(ctx.addExpr(i)));
+      const right = this.stringSmartCast(
+        await this.visitAddExpr(ctx.addExpr(i)),
+      );
       const operator = ctx.compOp(i - 1).getText();
       switch (operator) {
         case "=":
@@ -374,9 +385,11 @@ class PSCInterpreter extends PSCParserVisitor<
   override visitAddExpr = async (
     ctx: AddExprContext,
   ): Promise<AllowedTypes> => {
-    let result = stringSmartCast(await this.visitMulExpr(ctx.mulExpr(0)));
+    let result = this.stringSmartCast(await this.visitMulExpr(ctx.mulExpr(0)));
     for (let i = 1; i < ctx.mulExpr_list().length; i++) {
-      const right = stringSmartCast(await this.visitMulExpr(ctx.mulExpr(i)));
+      const right = this.stringSmartCast(
+        await this.visitMulExpr(ctx.mulExpr(i)),
+      );
       if (typeof result !== "number" || typeof right !== "number") {
         throw new OperationValueTypeMismatchError(
           ctx,
@@ -406,9 +419,11 @@ class PSCInterpreter extends PSCParserVisitor<
   override visitMulExpr = async (
     ctx: MulExprContext,
   ): Promise<AllowedTypes> => {
-    let result = stringSmartCast(await this.visitExpExpr(ctx.expExpr(0)));
+    let result = this.stringSmartCast(await this.visitExpExpr(ctx.expExpr(0)));
     for (let i = 1; i < ctx.expExpr_list().length; i++) {
-      const right = stringSmartCast(await this.visitExpExpr(ctx.expExpr(i)));
+      const right = this.stringSmartCast(
+        await this.visitExpExpr(ctx.expExpr(i)),
+      );
       if (typeof result !== "number" || typeof right !== "number") {
         throw new OperationValueTypeMismatchError(
           ctx,
@@ -444,7 +459,7 @@ class PSCInterpreter extends PSCParserVisitor<
   ): Promise<AllowedTypes> => {
     let result = await this.visitUnaryExpr(ctx.unaryExpr(0));
     for (let i = 1; i < ctx.unaryExpr_list().length; i++) {
-      const right = stringSmartCast(
+      const right = this.stringSmartCast(
         await this.visitUnaryExpr(ctx.unaryExpr(i)),
       );
       if (typeof result !== "number" || typeof right !== "number") {
@@ -476,7 +491,7 @@ class PSCInterpreter extends PSCParserVisitor<
   ): Promise<AllowedTypes> => {
     const minusCount = ctx.MINUS_list().length;
     const plusCount = ctx.PLUS_list().length;
-    const value = stringSmartCast(await this.visitNotExpr(ctx.notExpr()));
+    const value = this.stringSmartCast(await this.visitNotExpr(ctx.notExpr()));
 
     if (typeof value !== "number" && (minusCount > 0 || plusCount > 0)) {
       throw new OperationValueTypeMismatchError(
@@ -507,7 +522,7 @@ class PSCInterpreter extends PSCParserVisitor<
     ctx: NotExprContext,
   ): Promise<AllowedTypes> => {
     const notCount = ctx.NOT_list().length;
-    const value = stringSmartCast(
+    const value = this.stringSmartCast(
       await this.visitPrimaryExpr(ctx.primaryExpr()),
     );
     if (typeof value !== "boolean" && notCount > 0) {
@@ -602,7 +617,7 @@ class PSCInterpreter extends PSCParserVisitor<
     } else if (ctx.arrayLits()) {
       return await this.visitArrayLits(ctx.arrayLits());
     } else if (ctx.STRING()) {
-      return stringSmartCast(ctx.STRING().getText().slice(1, -1)); // Remove quotes
+      return this.stringSmartCast(ctx.STRING().getText().slice(1, -1)); // Remove quotes
     } else if (ctx.BOOLEAN()) {
       return ctx.BOOLEAN().getText().toLowerCase() === "true";
     } else if (ctx.NULL()) {
@@ -940,7 +955,7 @@ class PSCInterpreter extends PSCParserVisitor<
 
   override visitInputStmt = async (ctx: InputStmtContext): Promise<void> => {
     const ref = await this.visitLvalue(ctx.lvalue());
-    const value = stringSmartCast(await this.options.inputFunction?.());
+    const value = this.stringSmartCast(await this.options.inputFunction?.());
     ref.set(value);
   };
 

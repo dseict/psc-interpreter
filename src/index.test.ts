@@ -1,5 +1,5 @@
 import { describe, expect, it, test } from "vitest";
-import { interpret, type InterpreterOptions } from ".";
+import { PSCInterpreter, type InterpreterOptions } from ".";
 import {
   AccessNonExistingVariableError,
   ArrayAccessNotArrayError,
@@ -12,25 +12,21 @@ import {
   UnmatchedArgumentsError,
 } from "./error";
 
-async function output(code: string, options: Partial<InterpreterOptions> = {}) {
-  const out = [] as string[];
-  await interpret(`output ${code}`, {
-    outputFunction: (s) => out.push(s),
-    ...options,
-  });
-  return out[0];
-}
-
 async function outputOf(
   code: string[],
   options: Partial<InterpreterOptions> = {},
 ) {
   const out = [] as string[];
-  await interpret(code.join("\n"), {
+  const interpreter = new PSCInterpreter({
     outputFunction: (s) => out.push(s),
     ...options,
   });
+  await interpreter.interpret(code.join("\n"));
   return out;
+}
+
+async function output(code: string, options: Partial<InterpreterOptions> = {}) {
+  return (await outputOf([`output ${code}`], options))[0];
 }
 
 async function running(
@@ -40,7 +36,7 @@ async function running(
   if (typeof code === "string") {
     code = [code];
   }
-  await interpret(code.join("\n"), options);
+  await outputOf(code, options);
 }
 
 describe("lexing and parsing", () => {
