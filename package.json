@@ -11,7 +11,8 @@
   "homepage": "https://github.com/dseict/psc-interpreter",
   "license": "MIT",
   "author": {
-    "name": "patrickwassmart"
+    "name": "patrickwassmart",
+    "email": "patricwassmart@gmail.com"
   },
   "files": [
     "dist"

@@ -1,8 +1,6 @@
-.*
-!.gitignore
-!.prettierignore
-!.prettierrc
 node_modules/
 dist/
 coverage/
-_*/
+src/_antlr/
+.antlr
+.DS_Store
