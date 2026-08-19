@@ -1,0 +1,13 @@
+name: Verify and build
+on:
+  - push
+  - pull_request
+jobs:
+  verify:
+    name: Verify
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Verify and build
+        uses: ./.github/actions/verify-build
