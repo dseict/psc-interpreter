@@ -1,0 +1,39 @@
+name: Verify and build
+on:
+  - push
+  - pull_request
+  - workflow_call
+jobs:
+  verify:
+    name: Verify
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "25"
+      - name: Clean install dependencies
+        run: pnpm install
+      - name: Audit signatures
+        run: pnpm audit signatures
+      - name: Generate ANTLR files
+        run: pnpm run antlr
+      - name: Verify
+        run: pnpm run verify
+      - name: Build
+        run: pnpm run build
