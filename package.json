@@ -1,5 +1,5 @@
 {
-  "name": "psc-interpreter",
+  "name": "@dseict/psc-interpreter",
   "version": "0.0.1",
   "description": "A DSE-style pseudocode interpreter written in TypeScript.",
   "keywords": [
