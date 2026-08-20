@@ -1,5 +1,4 @@
 import { describe, expect, it, test } from "vitest";
-import { PSCInterpreter, type InterpreterOptions } from ".";
 import {
   AccessNonExistingVariableError,
   ArrayAccessNotArrayError,
@@ -11,10 +10,12 @@ import {
   PSCSyntaxError,
   UnmatchedArgumentsError,
 } from "./error";
+import type { InterpretVisitorOptions } from "./visitor";
+import { PSCInterpreter } from ".";
 
 async function outputOf(
   code: string[],
-  options: Partial<InterpreterOptions> = {},
+  options: Partial<InterpretVisitorOptions> = {},
 ) {
   const out = [] as string[];
   const interpreter = new PSCInterpreter({
@@ -25,13 +26,16 @@ async function outputOf(
   return out;
 }
 
-async function output(code: string, options: Partial<InterpreterOptions> = {}) {
+async function output(
+  code: string,
+  options: Partial<InterpretVisitorOptions> = {},
+) {
   return (await outputOf([`output ${code}`], options))[0];
 }
 
 async function running(
   code: string | string[],
-  options: Partial<InterpreterOptions> = {},
+  options: Partial<InterpretVisitorOptions> = {},
 ) {
   if (typeof code === "string") {
     code = [code];
