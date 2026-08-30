@@ -918,7 +918,7 @@ describe("event handlers", () => {
       ],
     ]);
   });
-  it.only("should emit a pre and post event for each while condition check", async () => {
+  it("should emit a pre and post event for each while condition check", async () => {
     const code = ["x <- 0", "while x < 3", "  output x", "  x <- x + 1"];
     await expect(
       eventsEmitted(code, ["pre_while_condition", "post_while_condition"]),
@@ -946,7 +946,7 @@ describe("event handlers", () => {
       ]),
     );
   });
-  it.only("should emit a pre and post event for each do-while condition check", async () => {
+  it("should emit a pre and post event for each do-while condition check", async () => {
     const code = ["x <- 0", "do", "  output x", "  x <- x + 1", "while x < 3"];
     await expect(
       eventsEmitted(code, [
@@ -977,7 +977,7 @@ describe("event handlers", () => {
       ]),
     );
   });
-  it.only("should emit a pre and post event for each repeat-until condition check", async () => {
+  it("should emit a pre and post event for each repeat-until condition check", async () => {
     const code = [
       "x <- 0",
       "repeat",
@@ -1014,7 +1014,7 @@ describe("event handlers", () => {
       ]),
     );
   });
-  it.only("should emit a variable change event for each for-loop iteration", async () => {
+  it("should emit a variable change event for each for-loop iteration", async () => {
     const code = ["for i from 1 to 3", "  output i"];
     await expect(
       eventsEmitted(code, ["for_variable_change"]),
@@ -1037,7 +1037,7 @@ describe("event handlers", () => {
       ]),
     );
   });
-  it.only("should emit a pre and post event for each expression evaluation", async () => {
+  it("should emit a pre and post event for each expression evaluation", async () => {
     const code = ["x <- 1", "output x +1"];
     await expect(
       eventsEmitted(code, ["pre_eval_expr", "post_eval_expr"]),
