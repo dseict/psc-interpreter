@@ -3,6 +3,7 @@ import PSCLexer from "./_antlr/PSCLexer";
 import PSCParser from "./_antlr/PSCParser";
 import { PSCInterpretVisitor, type InterpretVisitorOptions } from "./visitor";
 import { PSCSyntaxError } from "./error";
+import type { PSCEventCallback, PSCEventType } from "./events";
 
 export class PSCInterpreter {
   #visitor: PSCInterpretVisitor;
@@ -25,6 +26,10 @@ export class PSCInterpreter {
     parser.addErrorListener(new PSCErrorListener());
     const tree = parser.program();
     await this.#visitor.visit(tree);
+  }
+
+  on(eventType: PSCEventType, handler: PSCEventCallback): void {
+    this.#visitor.on(eventType, handler);
   }
 }
 

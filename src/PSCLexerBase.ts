@@ -44,15 +44,17 @@ export default class PSCLexerBase extends Lexer {
           }
           // Emits an INDENT token and push the new indentation level onto the stack
           this.indents.push(indentLevel);
-          this.pendingTokens.push(this.#makeToken(PSCLexer.INDENT));
+          this.pendingTokens.push(this.#makeSingleWidthToken(PSCLexer.INDENT));
         } else if (indentLevel < lastIndentLevel) {
           // Dedent as many times as needed to return to the original indentation level
           for (let i = 0; i < lastIndentLevel - indentLevel; i++) {
-            this.pendingTokens.push(this.#makeToken(PSCLexer.DEDENT));
+            this.pendingTokens.push(
+              this.#makeSingleWidthToken(PSCLexer.DEDENT),
+            );
             this.indents.pop();
           }
           // Create a NEWLINE token to be emitted after the DEDENT tokens
-          this.pendingTokens.push(this.#makeToken(PSCLexer.NEWLINE));
+          this.pendingTokens.push(this.#makeSingleWidthToken(PSCLexer.NEWLINE));
           // and skip the current NEWLINE token
           return false;
         }
@@ -65,7 +67,7 @@ export default class PSCLexerBase extends Lexer {
         }
         // Otherwise, dedent as many times as needed
         while (this.indents.pop() !== undefined) {
-          this.pendingTokens.push(this.#makeToken(PSCLexer.DEDENT));
+          this.pendingTokens.push(this.#makeSingleWidthToken(PSCLexer.DEDENT));
         }
         this.pendingTokens.push(token); // Push the EOF token to the pending tokens
         return false; // Skip the current EOF token
@@ -74,16 +76,14 @@ export default class PSCLexerBase extends Lexer {
     return true;
   }
 
-  #makeToken(type: number): Token {
-    const text = `<${PSCLexer.symbolicNames[type] ?? "UNKNOWN"}>`;
+  #makeSingleWidthToken(type: number): Token {
     const token = new CommonToken(
       [this, this._input],
       type,
       Token.DEFAULT_CHANNEL,
       this._tokenStartCharIndex,
-      this._tokenStartCharIndex + text.length - 1,
+      this._tokenStartCharIndex,
     );
-    token.text = text;
     return token;
   }
 }

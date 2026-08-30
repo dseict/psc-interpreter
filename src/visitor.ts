@@ -1,5 +1,5 @@
 import { ParserRuleContext } from "antlr4";
-import {
+import PSCParser, {
   AddExprContext,
   AndExprContext,
   ArrayLitsContext,
@@ -44,6 +44,11 @@ import {
   OperationValueTypeMismatchError,
   UnmatchedArgumentsError,
 } from "./error";
+import {
+  PSCEventBus,
+  type PSCEventCallback,
+  type PSCEventType,
+} from "./events";
 
 export type InterpretVisitorOptions = {
   strictVariableScope: boolean;
@@ -52,10 +57,10 @@ export type InterpretVisitorOptions = {
   inputFunction?: () => Promise<string>;
 };
 
-type Function = (params: AllowedTypes[]) => Promise<AllowedTypes>;
+export type Subprogram = (params: AllowedTypes[]) => Promise<AllowedTypes>;
 
-type AllowedTypes =
-  string | number | boolean | AllowedTypes[] | null | Function | undefined;
+export type AllowedTypes =
+  string | number | boolean | AllowedTypes[] | null | Subprogram | undefined;
 
 export class PSCInterpretVisitor extends PSCParserVisitor<
   Promise<AllowedTypes | Ref | void>
@@ -65,10 +70,17 @@ export class PSCInterpretVisitor extends PSCParserVisitor<
   variableStack: Record<string, AllowedTypes>[] = [{}];
   // Current return value, undefined means currently not in returning state
   currentReturn: AllowedTypes | undefined = undefined;
+  // Event bus
+  #eventBus: PSCEventBus = new PSCEventBus();
 
   constructor(options: InterpretVisitorOptions) {
     super();
     this.options = options;
+  }
+
+  // Returns a function that can be called to unregister the event handler
+  on(eventType: PSCEventType, handler: PSCEventCallback): () => void {
+    return this.#eventBus.on(eventType, handler);
   }
 
   stringSmartCast(value: AllowedTypes): AllowedTypes {
@@ -214,7 +226,19 @@ export class PSCInterpretVisitor extends PSCParserVisitor<
 
   // Expression and literals
   override visitExpr = async (ctx: ExprContext): Promise<AllowedTypes> => {
-    return await this.visitOrExpr(ctx.orExpr());
+    const eventParams = {
+      startLine: ctx.start.line,
+      startCol: ctx.start.column,
+      endLine: ctx.stop?.line,
+      endCol:
+        ctx.stop !== undefined
+          ? ctx.stop.column + ctx.stop.stop - ctx.stop.start
+          : undefined,
+    };
+    this.#eventBus.emit("pre_eval_expr", eventParams);
+    const result = await this.visitOrExpr(ctx.orExpr());
+    this.#eventBus.emit("post_eval_expr", { ...eventParams, result });
+    return result;
   };
 
   override visitOrExpr = async (ctx: OrExprContext): Promise<AllowedTypes> => {
@@ -627,10 +651,46 @@ export class PSCInterpretVisitor extends PSCParserVisitor<
   };
 
   override visitStmt = async (ctx: StmtContext): Promise<void> => {
-    for (const child of ctx.children ?? []) {
-      // Dispatch appropriate visit method
-      await this.visit(child as ParserRuleContext);
+    if (
+      ctx.children == null ||
+      ctx.children.length != 1 ||
+      ctx.children[0] == null
+    )
+      throw new ImpossibleError(ctx, "Statement must have exactly one child");
+
+    const child = ctx.children[0] as ParserRuleContext;
+    let ruleIndex;
+    try {
+      ruleIndex = (child as unknown as { ruleIndex: number }).ruleIndex;
+    } catch (e) {
+      throw new ImpossibleError(
+        ctx,
+        `Failed to get ruleIndex from child: ${e}`,
+      );
     }
+    const ruleName = PSCParser.ruleNames[ruleIndex];
+    if (!ruleName) {
+      throw new ImpossibleError(
+        ctx,
+        `Undefined rule name. ruleIndex ${ruleIndex} constructor.name ${child.constructor.name}`,
+      );
+    }
+    const eventParams = {
+      startLine: child.start.line,
+      startCol: child.start.column,
+      endLine: child.stop?.line,
+      endCol:
+        child.stop !== undefined
+          ? child.stop.column + child.stop.stop - child.stop.start
+          : undefined,
+      stmtType: ruleName,
+    };
+    this.#eventBus.emit("pre_exec_stmt", eventParams);
+
+    // Dispatch appropriate visit method
+    await this.visit(ctx.children[0] as ParserRuleContext);
+
+    this.#eventBus.emit("post_exec_stmt", eventParams);
   };
 
   override visitBlock = async (ctx: BlockContext): Promise<void> => {
@@ -703,6 +763,16 @@ export class PSCInterpretVisitor extends PSCParserVisitor<
     }
     const condition = ctx.expr();
     while (true) {
+      const eventParams = {
+        startLine: ctx.WHILE().symbol.line,
+        startCol: ctx.WHILE().symbol.column,
+        endLine: condition.stop?.line,
+        endCol:
+          condition.stop !== undefined
+            ? condition.stop.column + condition.stop.stop - condition.stop.start
+            : undefined,
+      };
+      this.#eventBus.emit("pre_while_condition", eventParams);
       const result = await this.visitExpr(condition);
       // Ensure the result is evaluated to a boolean value
       if (typeof result !== "boolean") {
@@ -711,6 +781,10 @@ export class PSCInterpretVisitor extends PSCParserVisitor<
           `Condition must evaluate to a boolean value, got: ${result}`,
         );
       }
+      this.#eventBus.emit("post_while_condition", {
+        ...eventParams,
+        shouldContinue: result,
+      });
       if (!result) {
         break;
       }
@@ -737,6 +811,17 @@ export class PSCInterpretVisitor extends PSCParserVisitor<
     let result;
     do {
       await this.visitBlock(ctx.block());
+
+      const eventParams = {
+        startLine: ctx.WHILE().symbol.line,
+        startCol: ctx.WHILE().symbol.column,
+        endLine: condition.stop?.line,
+        endCol:
+          condition.stop !== undefined
+            ? condition.stop.column + condition.stop.stop - condition.stop.start
+            : undefined,
+      };
+      this.#eventBus.emit("pre_do_while_condition", eventParams);
       result = await this.visitExpr(condition);
       // Ensure the result is evaluated to a boolean value
       if (typeof result !== "boolean") {
@@ -745,6 +830,10 @@ export class PSCInterpretVisitor extends PSCParserVisitor<
           `Condition must evaluate to a boolean value, got: ${result}`,
         );
       }
+      this.#eventBus.emit("post_do_while_condition", {
+        ...eventParams,
+        shouldContinue: result,
+      });
     } while (result);
   };
 
@@ -767,6 +856,16 @@ export class PSCInterpretVisitor extends PSCParserVisitor<
     let result;
     do {
       await this.visitBlock(ctx.block());
+      const eventParams = {
+        startLine: ctx.UNTIL().symbol.line,
+        startCol: ctx.UNTIL().symbol.column,
+        endLine: condition.stop?.line,
+        endCol:
+          condition.stop !== undefined
+            ? condition.stop.column + condition.stop.stop - condition.stop.start
+            : undefined,
+      };
+      this.#eventBus.emit("pre_repeat_until_condition", eventParams);
       result = await this.visitExpr(condition);
       // Ensure the result is evaluated to a boolean value
       if (typeof result !== "boolean") {
@@ -775,6 +874,10 @@ export class PSCInterpretVisitor extends PSCParserVisitor<
           `Condition must evaluate to a boolean value, got: ${result}`,
         );
       }
+      this.#eventBus.emit("post_repeat_until_condition", {
+        ...eventParams,
+        shouldContinue: !result,
+      });
     } while (!result);
   };
 
@@ -798,8 +901,10 @@ export class PSCInterpretVisitor extends PSCParserVisitor<
       );
     }
     const loopVar = ctx.ID().getText();
-    const fromValue = await this.visitExpr(ctx.expr(0));
-    const toValue = await this.visitExpr(ctx.expr(1));
+    const fromExpr = ctx.expr(0);
+    const toExpr = ctx.expr(1);
+    const fromValue = await this.visitExpr(fromExpr);
+    const toValue = await this.visitExpr(toExpr);
     const isDown = ctx.DOWN() !== null;
     if (this.variableExists(loopVar)) {
       throw new ForVariableReuseError(ctx, loopVar);
@@ -812,14 +917,28 @@ export class PSCInterpretVisitor extends PSCParserVisitor<
     ) {
       throw new ForRangeNotIntegerError(ctx, `${fromValue} and ${toValue}`);
     }
+    let oldValue: number | undefined = undefined;
     for (
       let i = fromValue;
       isDown ? i >= toValue : i <= toValue;
       isDown ? i-- : i++
     ) {
+      this.#eventBus.emit("for_variable_change", {
+        startLine: ctx.FOR().symbol.line,
+        startCol: ctx.FOR().symbol.column,
+        endLine: toExpr.stop?.line,
+        endCol:
+          toExpr.stop !== undefined
+            ? toExpr.stop.column + toExpr.stop.stop - toExpr.stop.start
+            : undefined,
+        variableName: loopVar,
+        oldValue: oldValue,
+        newValue: i,
+      });
       this.assignVariable(ctx, loopVar, i);
       await this.visitBlock(ctx.block());
       this.deleteVariable(ctx, loopVar);
+      oldValue = i;
     }
   };
 

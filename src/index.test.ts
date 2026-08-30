@@ -12,6 +12,7 @@ import {
 } from "./error";
 import type { InterpretVisitorOptions } from "./visitor";
 import { PSCInterpreter } from ".";
+import type { PSCEventParams, PSCEventType } from "./events";
 
 async function outputOf(
   code: string[],
@@ -41,6 +42,17 @@ async function running(
     code = [code];
   }
   await outputOf(code, options);
+}
+
+async function eventsEmitted(code: string[], eventTypes: PSCEventType[]) {
+  const emittedEvents: [PSCEventType, PSCEventParams][] = [];
+  const interpreter = new PSCInterpreter();
+  for (const eventType of eventTypes) {
+    interpreter.on(eventType, (params: PSCEventParams) => {
+      emittedEvents.push([eventType, params]);
+    });
+  }
+  return await interpreter.interpret(code.join("\n")).then(() => emittedEvents);
 }
 
 describe("lexing and parsing", () => {
@@ -807,5 +819,266 @@ describe("comments", () => {
     await expect(
       outputOf(code.map((x) => x.replace("#", "//"))),
     ).resolves.toStrictEqual(["1", "2"]);
+  });
+});
+
+describe("event handlers", () => {
+  it("should emit a pre and post event for each statement executed", async () => {
+    const code = [
+      "x <- 1",
+      "output x",
+      "if true",
+      "  output 'hello'",
+      "else",
+      "  output 'world'",
+    ];
+    await expect(
+      eventsEmitted(code, ["pre_exec_stmt", "post_exec_stmt"]),
+    ).resolves.toStrictEqual([
+      [
+        "pre_exec_stmt",
+        {
+          startLine: 1,
+          endLine: 1,
+          startCol: 0,
+          endCol: 5,
+          stmtType: "asmStmt",
+        },
+      ],
+      [
+        "post_exec_stmt",
+        {
+          startLine: 1,
+          endLine: 1,
+          startCol: 0,
+          endCol: 5,
+          stmtType: "asmStmt",
+        },
+      ],
+      [
+        "pre_exec_stmt",
+        {
+          startLine: 2,
+          endLine: 2,
+          startCol: 0,
+          endCol: 7,
+          stmtType: "outputStmt",
+        },
+      ],
+      [
+        "post_exec_stmt",
+        {
+          startLine: 2,
+          endLine: 2,
+          startCol: 0,
+          endCol: 7,
+          stmtType: "outputStmt",
+        },
+      ],
+      [
+        "pre_exec_stmt",
+        {
+          startLine: 3,
+          endLine: 6,
+          startCol: 0,
+          endCol: 16, // DEDENT token takes 1 width
+          stmtType: "ifStmt",
+        },
+      ],
+      [
+        "pre_exec_stmt",
+        {
+          startLine: 4,
+          endLine: 4,
+          startCol: 2,
+          endCol: 15,
+          stmtType: "outputStmt",
+        },
+      ],
+      [
+        "post_exec_stmt",
+        {
+          startLine: 4,
+          endLine: 4,
+          startCol: 2,
+          endCol: 15,
+          stmtType: "outputStmt",
+        },
+      ],
+      [
+        "post_exec_stmt",
+        {
+          startLine: 3,
+          endLine: 6,
+          startCol: 0,
+          endCol: 16, // DEDENT token takes 1 width
+          stmtType: "ifStmt",
+        },
+      ],
+    ]);
+  });
+  it.only("should emit a pre and post event for each while condition check", async () => {
+    const code = ["x <- 0", "while x < 3", "  output x", "  x <- x + 1"];
+    await expect(
+      eventsEmitted(code, ["pre_while_condition", "post_while_condition"]),
+    ).resolves.toStrictEqual(
+      [true, true, true, false].flatMap((c) => [
+        [
+          "pre_while_condition",
+          {
+            startLine: 2,
+            endLine: 2,
+            startCol: 0,
+            endCol: 10,
+          },
+        ],
+        [
+          "post_while_condition",
+          {
+            startLine: 2,
+            endLine: 2,
+            startCol: 0,
+            endCol: 10,
+            shouldContinue: c,
+          },
+        ],
+      ]),
+    );
+  });
+  it.only("should emit a pre and post event for each do-while condition check", async () => {
+    const code = ["x <- 0", "do", "  output x", "  x <- x + 1", "while x < 3"];
+    await expect(
+      eventsEmitted(code, [
+        "pre_do_while_condition",
+        "post_do_while_condition",
+      ]),
+    ).resolves.toStrictEqual(
+      [true, true, false].flatMap((c) => [
+        [
+          "pre_do_while_condition",
+          {
+            startLine: 5,
+            endLine: 5,
+            startCol: 0,
+            endCol: 10,
+          },
+        ],
+        [
+          "post_do_while_condition",
+          {
+            startLine: 5,
+            endLine: 5,
+            startCol: 0,
+            endCol: 10,
+            shouldContinue: c,
+          },
+        ],
+      ]),
+    );
+  });
+  it.only("should emit a pre and post event for each repeat-until condition check", async () => {
+    const code = [
+      "x <- 0",
+      "repeat",
+      "  output x",
+      "  x <- x + 1",
+      "until x >= 3",
+    ];
+    await expect(
+      eventsEmitted(code, [
+        "pre_repeat_until_condition",
+        "post_repeat_until_condition",
+      ]),
+    ).resolves.toStrictEqual(
+      [true, true, false].flatMap((c) => [
+        [
+          "pre_repeat_until_condition",
+          {
+            startLine: 5,
+            endLine: 5,
+            startCol: 0,
+            endCol: 11,
+          },
+        ],
+        [
+          "post_repeat_until_condition",
+          {
+            startLine: 5,
+            endLine: 5,
+            startCol: 0,
+            endCol: 11,
+            shouldContinue: c,
+          },
+        ],
+      ]),
+    );
+  });
+  it.only("should emit a variable change event for each for-loop iteration", async () => {
+    const code = ["for i from 1 to 3", "  output i"];
+    await expect(
+      eventsEmitted(code, ["for_variable_change"]),
+    ).resolves.toStrictEqual(
+      [
+        [undefined, 1],
+        [1, 2],
+        [2, 3],
+      ].map(([prev, next]) => [
+        "for_variable_change",
+        {
+          startLine: 1,
+          endLine: 1,
+          startCol: 0,
+          endCol: 16,
+          variableName: "i",
+          oldValue: prev,
+          newValue: next,
+        },
+      ]),
+    );
+  });
+  it.only("should emit a pre and post event for each expression evaluation", async () => {
+    const code = ["x <- 1", "output x +1"];
+    await expect(
+      eventsEmitted(code, ["pre_eval_expr", "post_eval_expr"]),
+    ).resolves.toStrictEqual([
+      [
+        "pre_eval_expr",
+        {
+          startLine: 1,
+          endLine: 1,
+          startCol: 5,
+          endCol: 5,
+        },
+      ],
+      [
+        "post_eval_expr",
+        {
+          startLine: 1,
+          endLine: 1,
+          startCol: 5,
+          endCol: 5,
+          result: 1,
+        },
+      ],
+      [
+        "pre_eval_expr",
+        {
+          startLine: 2,
+          endLine: 2,
+          startCol: 7,
+          endCol: 10,
+        },
+      ],
+      [
+        "post_eval_expr",
+        {
+          startLine: 2,
+          endLine: 2,
+          startCol: 7,
+          endCol: 10,
+          result: 2,
+        },
+      ],
+    ]);
   });
 });
