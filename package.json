@@ -54,7 +54,7 @@
     "antlr": "bash scripts/antlr.sh",
     "format": "prettier . --write",
     "lint": "eslint .",
-    "verify": "pnpm format && pnpm lint && pnpm test",
+    "verify": "prettier . --check && pnpm lint && pnpm test",
     "build": "rm -r -f ./dist && tsc --project tsconfig.build.json"
   }
 }
