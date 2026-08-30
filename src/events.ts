@@ -1,4 +1,4 @@
-import type { AllowedTypes } from "./visitor";
+import type { PSCTypes } from "./visitor";
 
 export interface PSCEventParams {
   startLine: number;
@@ -42,7 +42,7 @@ export interface ForVariableChangeParams extends PSCEventParams {
 export type PreEvalExprParams = PSCEventParams;
 
 export interface PostEvalExprParams extends PSCEventParams {
-  result: AllowedTypes;
+  result: PSCTypes;
 }
 
 type PSCEventParamsMap = {

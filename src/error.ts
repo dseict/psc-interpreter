@@ -17,7 +17,7 @@ export class PSCSyntaxError extends Error {
   }
 }
 
-export class AccessNonExistingVariableError extends Error {
+export class PSCAccessNonExistingVariableError extends Error {
   constructor(ctx: ParserRuleContext | undefined, variable: string) {
     super(
       `Cannot access variable ${variable}, which does not exists. ${ctx && generateLineColMessage(ctx)}`,
@@ -25,7 +25,7 @@ export class AccessNonExistingVariableError extends Error {
   }
 }
 
-export class OperationValueTypeMismatchError extends Error {
+export class PSCOperationValueTypeMismatchError extends Error {
   constructor(
     ctx: ParserRuleContext | undefined,
     operator: string,
@@ -38,7 +38,7 @@ export class OperationValueTypeMismatchError extends Error {
   }
 }
 
-export class ConditionNotBooleanError extends Error {
+export class PSCConditionNotBooleanError extends Error {
   constructor(ctx: ParserRuleContext | undefined, got: string) {
     super(
       `A condition must be evaluated to a boolean, got ${got}. ${ctx && generateLineColMessage(ctx)}`,
@@ -46,7 +46,7 @@ export class ConditionNotBooleanError extends Error {
   }
 }
 
-export class ForRangeNotIntegerError extends Error {
+export class PSCForRangeNotIntegerError extends Error {
   constructor(ctx: ParserRuleContext | undefined, got: string) {
     super(
       `For loop range must evaluate to an integer, got ${got}. ${ctx && generateLineColMessage(ctx)}`,
@@ -54,7 +54,7 @@ export class ForRangeNotIntegerError extends Error {
   }
 }
 
-export class ForVariableReuseError extends Error {
+export class PSCForVariableReuseError extends Error {
   constructor(ctx: ParserRuleContext | undefined, name: string) {
     super(
       `Cannot reuse loop variable '${name}' in a for loop. ${ctx && generateLineColMessage(ctx)}`,
@@ -62,14 +62,14 @@ export class ForVariableReuseError extends Error {
   }
 }
 
-export class InvalidArrayIndexError extends Error {
+export class PSCInvalidArrayIndexError extends Error {
   constructor(ctx: ParserRuleContext | undefined, index: string) {
     super(
       `Array index ${index} is invalid. ${ctx && generateLineColMessage(ctx)}`,
     );
   }
 }
-export class ArrayAccessNotArrayError extends Error {
+export class PSCArrayAccessNotArrayError extends Error {
   constructor(ctx: ParserRuleContext | undefined, got: string) {
     super(
       `Cannot access an array index on a non-array value, got ${got}. ${ctx && generateLineColMessage(ctx)}`,
@@ -77,7 +77,7 @@ export class ArrayAccessNotArrayError extends Error {
   }
 }
 
-export class UnmatchedArgumentsError extends Error {
+export class PSCUnmatchedArgumentsError extends Error {
   constructor(
     ctx: ParserRuleContext | undefined,
     name: string,
@@ -90,7 +90,7 @@ export class UnmatchedArgumentsError extends Error {
   }
 }
 
-export class ImpossibleError extends Error {
+export class PSCImpossibleError extends Error {
   constructor(ctx: ParserRuleContext | undefined, message: string) {
     super(
       `The following error should not be possible. Please report this bug:\n${message}. ${ctx && generateLineColMessage(ctx)}`,

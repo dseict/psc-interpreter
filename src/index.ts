@@ -1,14 +1,14 @@
 import { CharStream, CommonTokenStream, ErrorListener, Token } from "antlr4";
 import PSCLexer from "./_antlr/PSCLexer";
 import PSCParser from "./_antlr/PSCParser";
-import { PSCInterpretVisitor, type InterpretVisitorOptions } from "./visitor";
+import { PSCInterpretVisitor, type PSCVisitorOptions } from "./visitor";
 import { PSCSyntaxError } from "./error";
 import type { PSCEventCallback, PSCEventType } from "./events";
 
 export class PSCInterpreter {
   #visitor: PSCInterpretVisitor;
 
-  constructor(options?: Partial<InterpretVisitorOptions>) {
+  constructor(options?: Partial<PSCVisitorOptions>) {
     this.#visitor = new PSCInterpretVisitor({
       strictVariableScope: false,
       arrayStartIndex: 1,

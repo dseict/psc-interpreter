@@ -1,22 +1,22 @@
 import { describe, expect, it, test } from "vitest";
 import {
-  AccessNonExistingVariableError,
-  ArrayAccessNotArrayError,
-  ConditionNotBooleanError,
-  ForRangeNotIntegerError,
-  ForVariableReuseError,
-  InvalidArrayIndexError,
-  OperationValueTypeMismatchError,
+  PSCAccessNonExistingVariableError,
+  PSCArrayAccessNotArrayError,
+  PSCConditionNotBooleanError,
+  PSCForRangeNotIntegerError,
+  PSCForVariableReuseError,
+  PSCInvalidArrayIndexError,
+  PSCOperationValueTypeMismatchError,
   PSCSyntaxError,
-  UnmatchedArgumentsError,
+  PSCUnmatchedArgumentsError,
 } from "./error";
-import type { InterpretVisitorOptions } from "./visitor";
+import type { PSCVisitorOptions } from "./visitor";
 import { PSCInterpreter } from ".";
 import type { PSCEventParams, PSCEventType } from "./events";
 
 async function outputOf(
   code: string[],
-  options: Partial<InterpretVisitorOptions> = {},
+  options: Partial<PSCVisitorOptions> = {},
 ) {
   const out = [] as string[];
   const interpreter = new PSCInterpreter({
@@ -27,16 +27,13 @@ async function outputOf(
   return out;
 }
 
-async function output(
-  code: string,
-  options: Partial<InterpretVisitorOptions> = {},
-) {
+async function output(code: string, options: Partial<PSCVisitorOptions> = {}) {
   return (await outputOf([`output ${code}`], options))[0];
 }
 
 async function running(
   code: string | string[],
-  options: Partial<InterpretVisitorOptions> = {},
+  options: Partial<PSCVisitorOptions> = {},
 ) {
   if (typeof code === "string") {
     code = [code];
@@ -238,7 +235,7 @@ describe("operators", () => {
       "true ** 'a'",
     ])("%s -> OperationValueTypeMismatchError", async (a) => {
       await expect(() => running(a)).rejects.toThrow(
-        OperationValueTypeMismatchError,
+        PSCOperationValueTypeMismatchError,
       );
     });
   });
@@ -285,7 +282,7 @@ describe("operators", () => {
       "%s -> OperationValueTypeMismatchError",
       async (a) => {
         await expect(() => running(a)).rejects.toThrow(
-          OperationValueTypeMismatchError,
+          PSCOperationValueTypeMismatchError,
         );
       },
     );
@@ -307,7 +304,7 @@ describe("operators", () => {
       "%s -> OperationValueTypeMismatchError",
       async (a) => {
         await expect(() => running(a)).rejects.toThrow(
-          OperationValueTypeMismatchError,
+          PSCOperationValueTypeMismatchError,
         );
       },
     );
@@ -323,7 +320,7 @@ describe("operators", () => {
       "%s -> OperationValueTypeMismatchError",
       async (a) => {
         await expect(() => running(a)).rejects.toThrow(
-          OperationValueTypeMismatchError,
+          PSCOperationValueTypeMismatchError,
         );
       },
     );
@@ -346,7 +343,7 @@ describe("operators", () => {
       "%s -> OperationValueTypeMismatchError",
       async (a) => {
         await expect(() => running(a)).rejects.toThrow(
-          OperationValueTypeMismatchError,
+          PSCOperationValueTypeMismatchError,
         );
       },
     );
@@ -382,12 +379,14 @@ describe("operators", () => {
       "[[1, 2], [3, 4]][-1]",
       "[1,2,3][true]",
     ])("%s -> InvalidArrayIndexError", async (a) => {
-      await expect(() => output(a)).rejects.toThrow(InvalidArrayIndexError);
+      await expect(() => output(a)).rejects.toThrow(PSCInvalidArrayIndexError);
     });
     test.for(["[1, 2, 3][1,2]", "[1, 2, true][3,6]", "[null][1][1]"])(
       "%s -> ArrayAccessNotArrayError",
       async (a) => {
-        await expect(() => output(a)).rejects.toThrow(ArrayAccessNotArrayError);
+        await expect(() => output(a)).rejects.toThrow(
+          PSCArrayAccessNotArrayError,
+        );
       },
     );
   });
@@ -401,7 +400,7 @@ describe("variables", () => {
   });
   it("accessing a non-existing variable throws AccessNonExistingVariableError", async () => {
     await expect(() => running("output A")).rejects.toThrow(
-      AccessNonExistingVariableError,
+      PSCAccessNonExistingVariableError,
     );
   });
   describe("must be named with a valid identifier", async () => {
@@ -462,7 +461,7 @@ describe("statements", () => {
     it("should throw ConditionNotBooleanError if the condition is not boolean", async () => {
       const code = ["if 1", "  output true"];
       await expect(() => running(code)).rejects.toThrow(
-        ConditionNotBooleanError,
+        PSCConditionNotBooleanError,
       );
     });
   });
@@ -484,7 +483,7 @@ describe("statements", () => {
     it("should throw ConditionNotBooleanError if the condition is not boolean", async () => {
       const code = ["x <- 0", "while x", "  output x", "  x <- x + 1"];
       await expect(() => running(code)).rejects.toThrow(
-        ConditionNotBooleanError,
+        PSCConditionNotBooleanError,
       );
     });
   });
@@ -519,7 +518,7 @@ describe("statements", () => {
     it("should throw ConditionNotBooleanError if the condition is not boolean", async () => {
       const code = ["x <- 0", "do", "  output x", "  x <- x + 1", "while x"];
       await expect(() => running(code)).rejects.toThrow(
-        ConditionNotBooleanError,
+        PSCConditionNotBooleanError,
       );
     });
   });
@@ -560,7 +559,7 @@ describe("statements", () => {
         "until x",
       ];
       await expect(() => running(code)).rejects.toThrow(
-        ConditionNotBooleanError,
+        PSCConditionNotBooleanError,
       );
     });
   });
@@ -589,21 +588,21 @@ describe("statements", () => {
     it("should throw RangeNotNumberError if the range is not an integer", async () => {
       await expect(() =>
         running(["for i from 'a' to 5", "  output i"]),
-      ).rejects.toThrow(ForRangeNotIntegerError);
+      ).rejects.toThrow(PSCForRangeNotIntegerError);
       await expect(() =>
         running(["for i from 5 to 'a'", "  output i"]),
-      ).rejects.toThrow(ForRangeNotIntegerError);
+      ).rejects.toThrow(PSCForRangeNotIntegerError);
       await expect(() =>
         running(["for i from 1.2 to 4.3", "  output i"]),
-      ).rejects.toThrow(ForRangeNotIntegerError);
+      ).rejects.toThrow(PSCForRangeNotIntegerError);
     });
     it("should throw ForVariableReuseError if the loop variable is reused", async () => {
       await expect(() =>
         running(["for i from 1 to 5", "  for i from 1 to 5", "    output i"]),
-      ).rejects.toThrow(ForVariableReuseError);
+      ).rejects.toThrow(PSCForVariableReuseError);
       await expect(() =>
         running(["i <- 1", "for i from 1 to 5", "  output i"]),
-      ).rejects.toThrow(ForVariableReuseError);
+      ).rejects.toThrow(PSCForVariableReuseError);
     });
   });
 
@@ -669,7 +668,7 @@ describe("statements", () => {
           ["x <- [[12],'a']", "x[2,1] <- 2"],
         ])("%s", async ([a, b]) => {
           await expect(() => running([a!, b!])).rejects.toThrow(
-            ArrayAccessNotArrayError,
+            PSCArrayAccessNotArrayError,
           );
         });
       });
@@ -715,7 +714,7 @@ describe("subprograms", () => {
     ]);
     code.push("output A(1, 2)");
     await expect(() => running(code)).rejects.toThrow(
-      OperationValueTypeMismatchError,
+      PSCOperationValueTypeMismatchError,
     );
   });
   it("should throw AccessNonExistingVariableError if accessing local variables inside a subprogram from outside", async () => {
@@ -732,18 +731,20 @@ describe("subprograms", () => {
     await expect(outputOf(code)).resolves.toStrictEqual(["1", "2", "2"]);
     code.push("output y");
     await expect(() => running(code)).rejects.toThrow(
-      AccessNonExistingVariableError,
+      PSCAccessNonExistingVariableError,
     );
   });
   it("should throw OperationValueTypeMismatchError if a non-function is called as a function", async () => {
     const code = ["x <- 1", "output x()"];
     await expect(() => running(code)).rejects.toThrow(
-      OperationValueTypeMismatchError,
+      PSCOperationValueTypeMismatchError,
     );
   });
   it("should throw UnmatchedArgumentsError if a function is called with the wrong number of arguments", async () => {
     const code = ["subprogram test(a)", "  return a", "output test()"];
-    await expect(() => running(code)).rejects.toThrow(UnmatchedArgumentsError);
+    await expect(() => running(code)).rejects.toThrow(
+      PSCUnmatchedArgumentsError,
+    );
   });
 });
 
@@ -766,7 +767,7 @@ describe("options", () => {
       code.push("output y");
       await expect(() =>
         running(code, { strictVariableScope: true }),
-      ).rejects.toThrow(AccessNonExistingVariableError);
+      ).rejects.toThrow(PSCAccessNonExistingVariableError);
     });
     it("should have correct scope if strictVariableScope is disabled", async () => {
       const code = [
