@@ -20,7 +20,7 @@ runs:
       with:
         distribution: temurin
         java-version: "25"
-    - name: Clean install dependencies
+    - name: Install dependencies
       run: pnpm install
       shell: bash
     - name: Audit signatures
