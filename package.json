@@ -51,7 +51,7 @@
   "scripts": {
     "clean": "rm -r -f dist && rm -r -f src/antlr",
     "test": "vitest",
-    "antlr": "bash scripts/antlr.sh",
+    "antlr": "bash scripts/antlr.sh && eslint src/_antlr/ --fix --quiet",
     "format": "prettier . --write",
     "lint": "eslint .",
     "verify": "prettier . --check && pnpm lint && pnpm test",

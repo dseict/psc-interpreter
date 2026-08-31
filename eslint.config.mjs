@@ -14,16 +14,21 @@ export default defineConfig({
     "./node_modules/**",
     "./dist/**",
     "./coverage/**",
-    "./src/_antlr/**",
     "./vitest.config.ts",
   ],
   rules: {
     "@typescript-eslint/no-floating-promises": "error",
     "@typescript-eslint/no-unused-vars": [
-      "error",
+      "warn",
       {
         vars: "all",
         args: "none",
+      },
+    ],
+    "@typescript-eslint/consistent-type-imports": [
+      "error",
+      {
+        fixStyle: "separate-type-imports",
       },
     ],
   },

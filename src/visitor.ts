@@ -1,5 +1,5 @@
-import { ParserRuleContext } from "antlr4";
-import PSCParser, {
+import type { ParserRuleContext } from "antlr4";
+import type {
   AddExprContext,
   AndExprContext,
   ArrayLitsContext,
@@ -32,6 +32,7 @@ import PSCParser, {
   UnaryExprContext,
   WhileStmtContext,
 } from "./_antlr/PSCParser";
+import PSCParser from "./_antlr/PSCParser";
 import PSCParserVisitor from "./_antlr/PSCParserVisitor";
 import {
   PSCAccessNonExistingVariableError,
