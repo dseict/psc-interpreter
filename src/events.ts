@@ -63,7 +63,7 @@ export type PSCEventType = keyof PSCEventParamsMap;
 
 export type PSCEventCallback<T extends PSCEventType = PSCEventType> = (
   params: PSCEventParamsMap[T],
-) => void;
+) => Promise<void> | void;
 
 export class PSCEventBus {
   #handlers: {
@@ -84,14 +84,14 @@ export class PSCEventBus {
     };
   }
 
-  emit<T extends PSCEventType>(
+  async emit<T extends PSCEventType>(
     eventType: T,
     params: PSCEventParamsMap[T],
-  ): void {
+  ): Promise<void> {
     const handlers = this.#handlers[eventType];
     if (handlers) {
       for (const handler of handlers) {
-        handler(params);
+        await handler(params);
       }
     }
   }
