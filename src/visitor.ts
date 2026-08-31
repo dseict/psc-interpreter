@@ -239,9 +239,9 @@ export class PSCInterpretVisitor extends PSCParserVisitor<
           ? ctx.stop.column + ctx.stop.stop - ctx.stop.start
           : undefined,
     };
-    this.#eventBus.emit("pre_eval_expr", eventParams);
+    await this.#eventBus.emit("pre_eval_expr", eventParams);
     const result = await this.visitOrExpr(ctx.orExpr());
-    this.#eventBus.emit("post_eval_expr", { ...eventParams, result });
+    await this.#eventBus.emit("post_eval_expr", { ...eventParams, result });
     return result;
   };
 
@@ -680,12 +680,12 @@ export class PSCInterpretVisitor extends PSCParserVisitor<
           : undefined,
       stmtType: ruleName,
     };
-    this.#eventBus.emit("pre_exec_stmt", eventParams);
+    await this.#eventBus.emit("pre_exec_stmt", eventParams);
 
     // Dispatch appropriate visit method
     await this.visit(ctx.children[0] as ParserRuleContext);
 
-    this.#eventBus.emit("post_exec_stmt", eventParams);
+    await this.#eventBus.emit("post_exec_stmt", eventParams);
   };
 
   override visitBlock = async (ctx: BlockContext): Promise<void> => {
@@ -770,7 +770,7 @@ export class PSCInterpretVisitor extends PSCParserVisitor<
             ? condition.stop.column + condition.stop.stop - condition.stop.start
             : undefined,
       };
-      this.#eventBus.emit("pre_while_condition", eventParams);
+      await this.#eventBus.emit("pre_while_condition", eventParams);
       const result = await this.visitExpr(condition);
       // Ensure the result is evaluated to a boolean value
       if (typeof result !== "boolean") {
@@ -779,7 +779,7 @@ export class PSCInterpretVisitor extends PSCParserVisitor<
           `Condition must evaluate to a boolean value, got: ${result}`,
         );
       }
-      this.#eventBus.emit("post_while_condition", {
+      await this.#eventBus.emit("post_while_condition", {
         ...eventParams,
         shouldContinue: result,
       });
@@ -819,7 +819,7 @@ export class PSCInterpretVisitor extends PSCParserVisitor<
             ? condition.stop.column + condition.stop.stop - condition.stop.start
             : undefined,
       };
-      this.#eventBus.emit("pre_do_while_condition", eventParams);
+      await this.#eventBus.emit("pre_do_while_condition", eventParams);
       result = await this.visitExpr(condition);
       // Ensure the result is evaluated to a boolean value
       if (typeof result !== "boolean") {
@@ -828,7 +828,7 @@ export class PSCInterpretVisitor extends PSCParserVisitor<
           `Condition must evaluate to a boolean value, got: ${result}`,
         );
       }
-      this.#eventBus.emit("post_do_while_condition", {
+      await this.#eventBus.emit("post_do_while_condition", {
         ...eventParams,
         shouldContinue: result,
       });
@@ -863,7 +863,7 @@ export class PSCInterpretVisitor extends PSCParserVisitor<
             ? condition.stop.column + condition.stop.stop - condition.stop.start
             : undefined,
       };
-      this.#eventBus.emit("pre_repeat_until_condition", eventParams);
+      await this.#eventBus.emit("pre_repeat_until_condition", eventParams);
       result = await this.visitExpr(condition);
       // Ensure the result is evaluated to a boolean value
       if (typeof result !== "boolean") {
@@ -872,7 +872,7 @@ export class PSCInterpretVisitor extends PSCParserVisitor<
           `Condition must evaluate to a boolean value, got: ${result}`,
         );
       }
-      this.#eventBus.emit("post_repeat_until_condition", {
+      await this.#eventBus.emit("post_repeat_until_condition", {
         ...eventParams,
         shouldContinue: !result,
       });
@@ -921,7 +921,7 @@ export class PSCInterpretVisitor extends PSCParserVisitor<
       isDown ? i >= toValue : i <= toValue;
       isDown ? i-- : i++
     ) {
-      this.#eventBus.emit("for_variable_change", {
+      await this.#eventBus.emit("for_variable_change", {
         startLine: ctx.FOR().symbol.line,
         startCol: ctx.FOR().symbol.column,
         endLine: toExpr.stop?.line,
