@@ -1,4 +1,5 @@
-import { CharStream, CommonToken, Lexer, Token } from "antlr4";
+import type { CharStream } from "antlr4";
+import { CommonToken, Lexer, Token } from "antlr4";
 import PSCLexer from "./_antlr/PSCLexer";
 import { PSCSyntaxError } from "./error";
 

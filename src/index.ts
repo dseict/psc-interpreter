@@ -1,4 +1,5 @@
-import { CharStream, CommonTokenStream, ErrorListener, Token } from "antlr4";
+import type { Token } from "antlr4";
+import { CharStream, CommonTokenStream, ErrorListener } from "antlr4";
 import PSCLexer from "./_antlr/PSCLexer";
 import PSCParser from "./_antlr/PSCParser";
 import { PSCInterpretVisitor, type PSCVisitorOptions } from "./visitor";
