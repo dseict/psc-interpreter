@@ -29,8 +29,11 @@ export class PSCInterpreter {
     await this.#visitor.visit(tree);
   }
 
-  on(eventType: PSCEventType, handler: PSCEventCallback): void {
-    this.#visitor.on(eventType, handler);
+  on<T extends PSCEventType>(
+    eventType: T,
+    handler: PSCEventCallback<T>,
+  ): () => void {
+    return this.#visitor.on(eventType, handler);
   }
 }
 

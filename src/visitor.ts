@@ -80,7 +80,10 @@ export class PSCInterpretVisitor extends PSCParserVisitor<
   }
 
   // Returns a function that can be called to unregister the event handler
-  on(eventType: PSCEventType, handler: PSCEventCallback): () => void {
+  on<T extends PSCEventType>(
+    eventType: T,
+    handler: PSCEventCallback<T>,
+  ): () => void {
     return this.#eventBus.on(eventType, handler);
   }
 
