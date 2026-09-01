@@ -1082,4 +1082,28 @@ describe("event handlers", () => {
       ],
     ]);
   });
+  it("should block execution for asynchronous event handlers", async () => {
+    const code = ["for i from 1 to 5", "  output i"];
+    const output: [string, number][] = [];
+    const interpreter = new PSCInterpreter({
+      outputFunction: async (s) => {
+        output.push([s, Date.now()]);
+      },
+    });
+    interpreter.on("pre_eval_expr", async () => {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    });
+    const startTime = Date.now();
+    await interpreter.interpret(code.join("\n"));
+    const endTime = Date.now();
+    expect(endTime - startTime).toBeGreaterThanOrEqual(10 * 5);
+    expect(output.map(([s]) => s)).toStrictEqual(["1", "2", "3", "4", "5"]);
+    expect(output.map(([_, t]) => t)).toStrictEqual(
+      output.map(([_, t], i) => {
+        if (i === 0) return t;
+        expect(t - output[i - 1]![1]).toBeGreaterThanOrEqual(10);
+        return t;
+      }),
+    );
+  });
 });
