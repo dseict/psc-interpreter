@@ -1106,4 +1106,25 @@ describe("event handlers", () => {
       }),
     );
   });
+  it("should not have any side effects when mutating the event object", async () => {
+    const code = ["output 1"];
+    const interpreter = new PSCInterpreter({
+      outputFunction: async (s) => {
+        expect(s).toBe("1");
+      },
+    });
+    interpreter.on("pre_exec_stmt", async (event) => {
+      event.startLine = 100;
+      event.endLine = 100;
+      event.startCol = 100;
+      event.endCol = 100;
+    });
+    interpreter.on("post_exec_stmt", async (event) => {
+      expect(event.startLine).toBe(1);
+      expect(event.endLine).toBe(1);
+      expect(event.startCol).toBe(0);
+      expect(event.endCol).toBe(7);
+    });
+    await interpreter.interpret(code.join("\n"));
+  });
 });
