@@ -50,6 +50,7 @@ import {
   type PSCEventCallback,
   type PSCEventType,
 } from "./events";
+import { resolveSequentially } from "./utils";
 
 export type PSCVisitorOptions = {
   strictVariableScope: boolean;
@@ -537,7 +538,7 @@ export class PSCInterpretVisitor extends PSCParserVisitor<
     ctx: PrimaryExprContext,
   ): Promise<PSCTypes> => {
     if (ctx.LPAREN() && ctx.RPAREN()) {
-      const args = await Promise.all(
+      const args = await resolveSequentially(
         ctx.expr_list().map((expr) => this.visitExpr(expr)),
       );
       const func = await this.visitPrimaryExpr(ctx.primaryExpr());
@@ -552,7 +553,7 @@ export class PSCInterpretVisitor extends PSCParserVisitor<
       // Function must return a value
       return await func(args);
     } else if (ctx.LSQUARE() && ctx.RSQUARE()) {
-      const indices = await Promise.all(
+      const indices = await resolveSequentially(
         ctx.expr_list().map((expr) => this.visitExpr(expr)),
       );
       const leftArr = await this.visitPrimaryExpr(ctx.primaryExpr());
@@ -961,7 +962,7 @@ export class PSCInterpretVisitor extends PSCParserVisitor<
     } else if (ctx.lvalue() && ctx.LSQUARE() && ctx.RSQUARE()) {
       const leftRef = await this.visitLvalue(ctx.lvalue());
       const leftVal = leftRef.get();
-      const unnormalizedIndices = await Promise.all(
+      const unnormalizedIndices = await resolveSequentially(
         ctx.expr_list().map((expr) => this.visitExpr(expr)),
       );
 
