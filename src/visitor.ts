@@ -230,7 +230,9 @@ export class PSCInterpretVisitor extends PSCParserVisitor<
     for (const subprogramCtx of ctx.subprogram_list()) {
       await this.visitSubprogram(subprogramCtx);
     }
-    await this.visitStmts(ctx.stmts());
+    if (ctx.stmts() != null) {
+      await this.visitStmts(ctx.stmts());
+    }
   };
 
   // Expression and literals

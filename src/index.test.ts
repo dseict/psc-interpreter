@@ -74,6 +74,12 @@ describe("lexing and parsing", () => {
       PSCSyntaxError,
     );
   });
+  it("should parse empty code", async () => {
+    await expect(running("")).resolves.not.toThrow();
+  });
+  it("should throw if block is empty", async () => {
+    await expect(running(["if true", "  "])).rejects.toThrow(PSCSyntaxError);
+  });
 });
 
 describe("literals", () => {
