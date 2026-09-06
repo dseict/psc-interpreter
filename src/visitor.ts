@@ -539,7 +539,7 @@ export class PSCInterpretVisitor extends PSCParserVisitor<
   ): Promise<PSCTypes> => {
     if (ctx.LPAREN() && ctx.RPAREN()) {
       const args = await resolveSequentially(
-        ctx.expr_list().map((expr) => this.visitExpr(expr)),
+        ctx.expr_list().map((expr) => () => this.visitExpr(expr)),
       );
       const func = await this.visitPrimaryExpr(ctx.primaryExpr());
       if (typeof func !== "function") {
@@ -554,7 +554,7 @@ export class PSCInterpretVisitor extends PSCParserVisitor<
       return await func(args);
     } else if (ctx.LSQUARE() && ctx.RSQUARE()) {
       const indices = await resolveSequentially(
-        ctx.expr_list().map((expr) => this.visitExpr(expr)),
+        ctx.expr_list().map((expr) => () => this.visitExpr(expr)),
       );
       const leftArr = await this.visitPrimaryExpr(ctx.primaryExpr());
       return indices.reduce((arr: PSCTypes, index: PSCTypes) => {
@@ -963,7 +963,7 @@ export class PSCInterpretVisitor extends PSCParserVisitor<
       const leftRef = await this.visitLvalue(ctx.lvalue());
       const leftVal = leftRef.get();
       const unnormalizedIndices = await resolveSequentially(
-        ctx.expr_list().map((expr) => this.visitExpr(expr)),
+        ctx.expr_list().map((expr) => () => this.visitExpr(expr)),
       );
 
       return {
