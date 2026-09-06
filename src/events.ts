@@ -1,49 +1,49 @@
 import type { PSCTypes } from "./visitor";
 
-export interface PSCEventParams {
+export type PSCEventParams = {
   startLine: number;
   startCol: number;
   endLine?: number;
   endCol?: number;
-}
+};
 
-export interface PreExecStmtParams extends PSCEventParams {
+export type PreExecStmtParams = PSCEventParams & {
   stmtType: string;
-}
+};
 
-export interface PostExecStmtParams extends PSCEventParams {
+export type PostExecStmtParams = PSCEventParams & {
   stmtType: string;
-}
+};
 
 export type PreWhileConditionParams = PSCEventParams;
 
-export interface PostWhileConditionParams extends PSCEventParams {
+export type PostWhileConditionParams = PSCEventParams & {
   shouldContinue: boolean;
-}
+};
 
 export type PreDoWhileConditionParams = PSCEventParams;
 
-export interface PostDoWhileConditionParams extends PSCEventParams {
+export type PostDoWhileConditionParams = PSCEventParams & {
   shouldContinue: boolean;
-}
+};
 
 export type PreRepeatUntilConditionParams = PSCEventParams;
 
-export interface PostRepeatUntilConditionParams extends PSCEventParams {
+export type PostRepeatUntilConditionParams = PSCEventParams & {
   shouldContinue: boolean;
-}
+};
 
-export interface ForVariableChangeParams extends PSCEventParams {
+export type ForVariableChangeParams = PSCEventParams & {
   variableName: string;
   oldValue?: number;
   newValue: number;
-}
+};
 
 export type PreEvalExprParams = PSCEventParams;
 
-export interface PostEvalExprParams extends PSCEventParams {
+export type PostEvalExprParams = PSCEventParams & {
   result: PSCTypes;
-}
+};
 
 export type PreIfConditionParams = PSCEventParams;
 
