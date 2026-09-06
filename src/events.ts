@@ -39,9 +39,12 @@ export type ForVariableChangeParams = PSCEventParams & {
   newValue: number;
 };
 
-export type PreEvalExprParams = PSCEventParams;
+export type PreEvalExprParams = PSCEventParams & {
+  expr: string;
+};
 
 export type PostEvalExprParams = PSCEventParams & {
+  expr: string;
   result: PSCTypes;
 };
 

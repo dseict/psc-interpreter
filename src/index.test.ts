@@ -1081,6 +1081,7 @@ describe("event handlers", () => {
           endLine: 1,
           startCol: 5,
           endCol: 5,
+          expr: "1",
         },
       ],
       [
@@ -1091,6 +1092,7 @@ describe("event handlers", () => {
           startCol: 5,
           endCol: 5,
           result: 1,
+          expr: "1",
         },
       ],
       [
@@ -1100,6 +1102,7 @@ describe("event handlers", () => {
           endLine: 2,
           startCol: 7,
           endCol: 10,
+          expr: "x+1",
         },
       ],
       [
@@ -1110,6 +1113,7 @@ describe("event handlers", () => {
           startCol: 7,
           endCol: 10,
           result: 2,
+          expr: "x+1",
         },
       ],
     ]);

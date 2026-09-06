@@ -239,6 +239,7 @@ export class PSCInterpretVisitor extends PSCParserVisitor<
         ctx.stop !== undefined
           ? ctx.stop.column + ctx.stop.stop - ctx.stop.start
           : undefined,
+      expr: ctx.getText(),
     };
     await this.#eventBus.emit("pre_eval_expr", { ...eventParams });
     const result = await this.visitOrExpr(ctx.orExpr());
