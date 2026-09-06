@@ -35,6 +35,10 @@ export class PSCInterpreter {
   ): () => void {
     return this.#visitor.on(eventType, handler);
   }
+
+  getMutableVariableStack() {
+    return this.#visitor.getMutableVariableStack();
+  }
 }
 
 class PSCErrorListener extends ErrorListener<Token> {
