@@ -15,21 +15,21 @@ export interface PostExecStmtParams extends PSCEventParams {
   stmtType: string;
 }
 
-export type PreWhileCondition = PSCEventParams;
+export type PreWhileConditionParams = PSCEventParams;
 
-export interface PostWhileCondition extends PSCEventParams {
+export interface PostWhileConditionParams extends PSCEventParams {
   shouldContinue: boolean;
 }
 
-export type PreDoWhileCondition = PSCEventParams;
+export type PreDoWhileConditionParams = PSCEventParams;
 
-export interface PostDoWhileCondition extends PSCEventParams {
+export interface PostDoWhileConditionParams extends PSCEventParams {
   shouldContinue: boolean;
 }
 
-export type PreRepeatUntilCondition = PSCEventParams;
+export type PreRepeatUntilConditionParams = PSCEventParams;
 
-export interface PostRepeatUntilCondition extends PSCEventParams {
+export interface PostRepeatUntilConditionParams extends PSCEventParams {
   shouldContinue: boolean;
 }
 
@@ -48,12 +48,12 @@ export interface PostEvalExprParams extends PSCEventParams {
 type PSCEventParamsMap = {
   pre_exec_stmt: PreExecStmtParams;
   post_exec_stmt: PostExecStmtParams;
-  pre_while_condition: PreWhileCondition;
-  post_while_condition: PostWhileCondition;
-  pre_do_while_condition: PreDoWhileCondition;
-  post_do_while_condition: PostDoWhileCondition;
-  pre_repeat_until_condition: PreRepeatUntilCondition;
-  post_repeat_until_condition: PostRepeatUntilCondition;
+  pre_while_condition: PreWhileConditionParams;
+  post_while_condition: PostWhileConditionParams;
+  pre_do_while_condition: PreDoWhileConditionParams;
+  post_do_while_condition: PostDoWhileConditionParams;
+  pre_repeat_until_condition: PreRepeatUntilConditionParams;
+  post_repeat_until_condition: PostRepeatUntilConditionParams;
   for_variable_change: ForVariableChangeParams;
   pre_eval_expr: PreEvalExprParams;
   post_eval_expr: PostEvalExprParams;
