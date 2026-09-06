@@ -88,6 +88,10 @@ export class PSCInterpretVisitor extends PSCParserVisitor<
     return this.#eventBus.on(eventType, handler);
   }
 
+  getMutableVariableStack() {
+    return this.#variableStack;
+  }
+
   #stringSmartCast(value: PSCTypes): PSCTypes {
     if (typeof value === "string") {
       // Try to cast to boolean
