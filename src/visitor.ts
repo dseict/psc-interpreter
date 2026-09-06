@@ -720,28 +720,42 @@ export class PSCInterpretVisitor extends PSCParserVisitor<
       );
     }
     const condition = ctx.expr();
-    if (condition) {
-      // Evaluate the condition
-      const result = await this.visitExpr(condition);
-      // Ensure the result is evaluated to a boolean value
-      if (typeof result !== "boolean") {
-        throw new PSCConditionNotBooleanError(
-          ctx.expr(),
-          this.#asString(ctx, result),
-        );
-      }
-      if (result) {
-        // Execute the 'then' block
-        await this.visitBlock(ctx.block(0));
-      } else if (ctx.ELSE()) {
-        if (ctx.block_list().length == 2) {
-          // Execute the block after else
-          // Execute the 'else' block if it exists
-          await this.visitBlock(ctx.block(1));
-        } else if (ctx.ifStmt()) {
-          // Execute the ifStmt after else
-          await this.visitIfStmt(ctx.ifStmt());
-        }
+
+    const eventParams = {
+      startLine: ctx.IF().symbol.line,
+      startCol: ctx.IF().symbol.column,
+      endLine: condition.stop?.line,
+      endCol:
+        condition.stop !== undefined
+          ? condition.stop.column + condition.stop.stop - condition.stop.start
+          : undefined,
+    };
+    await this.#eventBus.emit("pre_if_condition", { ...eventParams });
+    // Evaluate the condition
+    const result = await this.visitExpr(condition);
+
+    // Ensure the result is evaluated to a boolean value
+    if (typeof result !== "boolean") {
+      throw new PSCConditionNotBooleanError(
+        ctx.expr(),
+        this.#asString(ctx, result),
+      );
+    }
+    await this.#eventBus.emit("post_if_condition", {
+      ...eventParams,
+      result,
+    });
+    if (result) {
+      // Execute the 'then' block
+      await this.visitBlock(ctx.block(0));
+    } else if (ctx.ELSE()) {
+      if (ctx.block_list().length == 2) {
+        // Execute the block after else
+        // Execute the 'else' block if it exists
+        await this.visitBlock(ctx.block(1));
+      } else if (ctx.ifStmt()) {
+        // Execute the ifStmt after else
+        await this.visitIfStmt(ctx.ifStmt());
       }
     }
   };

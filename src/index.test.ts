@@ -1014,6 +1014,38 @@ describe("event handlers", () => {
       ]),
     );
   });
+  it("should emit a pre and post event for each if statement condition", async () => {
+    const code = [
+      "x <- 1",
+      "if x=1",
+      "  output true",
+      "else",
+      "  output false",
+    ];
+    await expect(
+      eventsEmitted(code, ["pre_if_condition", "post_if_condition"]),
+    ).resolves.toStrictEqual([
+      [
+        "pre_if_condition",
+        {
+          startLine: 2,
+          endLine: 2,
+          startCol: 0,
+          endCol: 5,
+        },
+      ],
+      [
+        "post_if_condition",
+        {
+          startLine: 2,
+          endLine: 2,
+          startCol: 0,
+          endCol: 5,
+          result: true,
+        },
+      ],
+    ]);
+  });
   it("should emit a variable change event for each for-loop iteration", async () => {
     const code = ["for i from 1 to 3", "  output i"];
     await expect(

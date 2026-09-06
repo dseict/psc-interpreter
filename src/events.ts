@@ -45,6 +45,12 @@ export interface PostEvalExprParams extends PSCEventParams {
   result: PSCTypes;
 }
 
+export type PreIfConditionParams = PSCEventParams;
+
+export type PostIfConditionParams = PSCEventParams & {
+  result: boolean;
+};
+
 type PSCEventParamsMap = {
   pre_exec_stmt: PreExecStmtParams;
   post_exec_stmt: PostExecStmtParams;
@@ -57,6 +63,8 @@ type PSCEventParamsMap = {
   for_variable_change: ForVariableChangeParams;
   pre_eval_expr: PreEvalExprParams;
   post_eval_expr: PostEvalExprParams;
+  pre_if_condition: PreIfConditionParams;
+  post_if_condition: PostIfConditionParams;
 };
 
 export type PSCEventType = keyof PSCEventParamsMap;
