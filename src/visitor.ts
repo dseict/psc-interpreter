@@ -945,7 +945,7 @@ export class PSCInterpretVisitor extends PSCParserVisitor<
       isDown ? i >= toValue : i <= toValue;
       isDown ? i-- : i++
     ) {
-      await this.#eventBus.emit("for_variable_change", {
+      const eventParams = {
         startLine: ctx.FOR().symbol.line,
         startCol: ctx.FOR().symbol.column,
         endLine: toExpr.stop?.line,
@@ -956,8 +956,9 @@ export class PSCInterpretVisitor extends PSCParserVisitor<
         variableName: loopVar,
         oldValue: oldValue,
         newValue: i,
-      });
+      };
       this.#assignVariable(ctx, loopVar, i);
+      await this.#eventBus.emit("post_for_variable_change", { ...eventParams });
       await this.visitBlock(ctx.block());
       this.#deleteVariable(ctx, loopVar);
       oldValue = i;

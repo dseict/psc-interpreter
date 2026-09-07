@@ -33,7 +33,7 @@ export type PostRepeatUntilConditionParams = PSCEventParams & {
   shouldContinue: boolean;
 };
 
-export type ForVariableChangeParams = PSCEventParams & {
+export type PostForVariableChangeParams = PSCEventParams & {
   variableName: string;
   oldValue?: number;
   newValue: number;
@@ -63,7 +63,7 @@ type PSCEventParamsMap = {
   post_do_while_condition: PostDoWhileConditionParams;
   pre_repeat_until_condition: PreRepeatUntilConditionParams;
   post_repeat_until_condition: PostRepeatUntilConditionParams;
-  for_variable_change: ForVariableChangeParams;
+  post_for_variable_change: PostForVariableChangeParams;
   pre_eval_expr: PreEvalExprParams;
   post_eval_expr: PostEvalExprParams;
   pre_if_condition: PreIfConditionParams;

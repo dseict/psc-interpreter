@@ -1055,14 +1055,14 @@ describe("event handlers", () => {
   it("should emit a variable change event for each for-loop iteration", async () => {
     const code = ["for i from 1 to 3", "  output i"];
     await expect(
-      eventsEmitted(code, ["for_variable_change"]),
+      eventsEmitted(code, ["post_for_variable_change"]),
     ).resolves.toStrictEqual(
       [
         [undefined, 1],
         [1, 2],
         [2, 3],
       ].map(([prev, next]) => [
-        "for_variable_change",
+        "post_for_variable_change",
         {
           startLine: 1,
           endLine: 1,
