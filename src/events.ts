@@ -54,6 +54,21 @@ export type PostIfConditionParams = PSCEventParams & {
   result: boolean;
 };
 
+export type PostSubprogramDefinitionParams = PSCEventParams & {
+  subprogramName: string;
+  paramNames: string[];
+};
+
+export type PreSubprogramCallParams = PSCEventParams & {
+  subprogramName: string;
+  paramValues: PSCTypes[];
+};
+
+export type PostSubprogramCallParams = PSCEventParams & {
+  subprogramName: string;
+  returnValue: PSCTypes;
+};
+
 type PSCEventParamsMap = {
   pre_exec_stmt: PreExecStmtParams;
   post_exec_stmt: PostExecStmtParams;
@@ -68,6 +83,9 @@ type PSCEventParamsMap = {
   post_eval_expr: PostEvalExprParams;
   pre_if_condition: PreIfConditionParams;
   post_if_condition: PostIfConditionParams;
+  post_subprogram_definition: PostSubprogramDefinitionParams;
+  pre_subprogram_call: PreSubprogramCallParams;
+  post_subprogram_call: PostSubprogramCallParams;
 };
 
 export type PSCEventType = keyof PSCEventParamsMap;

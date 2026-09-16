@@ -1124,6 +1124,58 @@ describe("event handlers", () => {
       ],
     ]);
   });
+  it("should emit a post event for each subprogram defined", async () => {
+    const code = ["subprogram test(a,b)", "  output 'hello'"];
+    await expect(
+      eventsEmitted(code, ["post_subprogram_definition"]),
+    ).resolves.toStrictEqual([
+      [
+        "post_subprogram_definition",
+        {
+          startLine: 1,
+          endLine: 2,
+          startCol: 0,
+          endCol: 16,
+          subprogramName: "test",
+          paramNames: ["a", "b"],
+        },
+      ],
+    ]);
+  });
+  it("should emit a pre and post event for each subprogram call", async () => {
+    const code = [
+      "subprogram test(a,b)",
+      "  output 'hello'",
+      "  return a+b",
+      "test(1,2)",
+    ];
+    await expect(
+      eventsEmitted(code, ["pre_subprogram_call", "post_subprogram_call"]),
+    ).resolves.toStrictEqual([
+      [
+        "pre_subprogram_call",
+        {
+          startLine: 4,
+          endLine: 4,
+          startCol: 0,
+          endCol: 8,
+          subprogramName: "test",
+          paramValues: [1, 2],
+        },
+      ],
+      [
+        "post_subprogram_call",
+        {
+          startLine: 4,
+          endLine: 4,
+          startCol: 0,
+          endCol: 8,
+          subprogramName: "test",
+          returnValue: 3,
+        },
+      ],
+    ]);
+  });
   it("should block execution for asynchronous event handlers", async () => {
     const code = ["for i from 1 to 5", "  output i"];
     const output: [string, number][] = [];

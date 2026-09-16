@@ -59,7 +59,10 @@ export type PSCVisitorOptions = {
   inputFunction?: () => Promise<string>;
 };
 
-export type PSCSubprogram = (params: PSCTypes[]) => Promise<PSCTypes>;
+export type PSCSubprogram = {
+  name: string;
+  func: (params: PSCTypes[]) => Promise<PSCTypes>;
+};
 
 export type PSCTypes =
   string | number | boolean | PSCTypes[] | null | PSCSubprogram | undefined;
@@ -206,7 +209,11 @@ export class PSCInterpretVisitor extends PSCParserVisitor<
       return "";
     } else if (value === null) {
       return "null";
-    } else if (value instanceof Function) {
+    } else if (
+      typeof value === "object" &&
+      "func" in value &&
+      "name" in value
+    ) {
       return "[Function]";
     }
     throw new PSCImpossibleError(
@@ -548,17 +555,41 @@ export class PSCInterpretVisitor extends PSCParserVisitor<
       const args = await resolveSequentially(
         ctx.expr_list().map((expr) => () => this.visitExpr(expr)),
       );
-      const func = await this.visitPrimaryExpr(ctx.primaryExpr());
-      if (typeof func !== "function") {
+      const subprogram = await this.visitPrimaryExpr(ctx.primaryExpr());
+      if (!(
+        subprogram &&
+        typeof subprogram === "object" &&
+        "func" in subprogram &&
+        "name" in subprogram
+      )) {
         throw new PSCOperationValueTypeMismatchError(
           ctx,
           "Function call",
           "function",
-          this.#asString(ctx, func),
+          this.#asString(ctx, subprogram),
         );
       }
       // Function must return a value
-      return await func(args);
+      const eventParams = {
+        startLine: ctx.start.line,
+        startCol: ctx.start.column,
+        endLine: ctx.stop?.line,
+        endCol:
+          ctx.stop !== undefined
+            ? ctx.stop.column + ctx.stop.stop - ctx.stop.start
+            : undefined,
+        subprogramName: subprogram.name,
+      };
+      await this.#eventBus.emit("pre_subprogram_call", {
+        ...eventParams,
+        paramValues: args,
+      });
+      const returnValue = await subprogram.func(args);
+      await this.#eventBus.emit("post_subprogram_call", {
+        ...eventParams,
+        returnValue: returnValue,
+      });
+      return returnValue;
     } else if (ctx.LSQUARE() && ctx.RSQUARE()) {
       const indices = await resolveSequentially(
         ctx.expr_list().map((expr) => () => this.visitExpr(expr)),
@@ -1086,35 +1117,51 @@ export class PSCInterpretVisitor extends PSCParserVisitor<
         .map((id) => id.getText()) ?? [];
 
     // Subprogram is stored as a variable in the current variable stack
-    this.#assignVariable(ctx, name, async (params: PSCTypes[]) => {
-      if (params.length !== paramNames.length) {
-        throw new PSCUnmatchedArgumentsError(
-          ctx,
-          name,
-          paramNames.length,
-          params.length,
-        );
-      }
-      // Create a new variable stack for the subprogram execution ignoring strictVariableScope option.
-      // This ensures that variables defined within the subprogram do not interfere with those in the calling context.
+    this.#assignVariable(ctx, name, {
+      name,
+      func: async (params: PSCTypes[]) => {
+        if (params.length !== paramNames.length) {
+          throw new PSCUnmatchedArgumentsError(
+            ctx,
+            name,
+            paramNames.length,
+            params.length,
+          );
+        }
+        // Create a new variable stack for the subprogram execution ignoring strictVariableScope option.
+        // This ensures that variables defined within the subprogram do not interfere with those in the calling context.
 
-      // If strictVariableScope is true, there is no need to create a new variable stack here
-      // since that is automatically handled by the visitBlock method
-      if (!this.#options.strictVariableScope) {
-        this.#newVariableStack(ctx);
-      }
-      // Assign arguments to the new variable stack
-      for (let i = 0; i < paramNames.length; i++) {
-        this.#assignVariable(ctx, paramNames[i]!, params[i]!);
-      }
-      await this.visitBlock(ctx.block());
-      if (!this.#options.strictVariableScope) {
-        this.#popVariableStack(ctx);
-      }
-      // Terminate the returning state here
+        // If strictVariableScope is true, there is no need to create a new variable stack here
+        // since that is automatically handled by the visitBlock method
+        if (!this.#options.strictVariableScope) {
+          this.#newVariableStack(ctx);
+        }
+        // Assign arguments to the new variable stack
+        for (let i = 0; i < paramNames.length; i++) {
+          this.#assignVariable(ctx, paramNames[i]!, params[i]!);
+        }
+        await this.visitBlock(ctx.block());
+        if (!this.#options.strictVariableScope) {
+          this.#popVariableStack(ctx);
+        }
+        // Terminate the returning state here
 
-      return this.#terminateReturn() ?? null;
+        return this.#terminateReturn() ?? null;
+      },
     });
+
+    const eventParams = {
+      startLine: ctx.start.line,
+      startCol: ctx.start.column,
+      endLine: ctx.stop?.line,
+      endCol:
+        ctx.stop !== undefined
+          ? ctx.stop.column + ctx.stop.stop - ctx.stop.start
+          : undefined,
+      subprogramName: name,
+      paramNames: paramNames,
+    };
+    await this.#eventBus.emit("post_subprogram_definition", { ...eventParams });
   };
 
   override visitReturnStmt = async (ctx: ReturnStmtContext): Promise<void> => {
