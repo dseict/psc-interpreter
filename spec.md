@@ -177,6 +177,10 @@ output A // outputs [,,1]
 
 Subprograms are special data types that represent a block of code that can be called with or without arguments and must return a value.
 
+### Output of subprograms
+
+Subprograms are output as `[Subprogram: <subprogram name>]`, where `<subprogram name>` is the name of the subprogram.
+
 See more in the Subprograms section.
 
 # Expression

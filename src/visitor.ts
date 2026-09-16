@@ -214,7 +214,7 @@ export class PSCInterpretVisitor extends PSCParserVisitor<
       "func" in value &&
       "name" in value
     ) {
-      return "[Function]";
+      return `[Subprogram: ${value.name}]`;
     }
     throw new PSCImpossibleError(
       ctx,

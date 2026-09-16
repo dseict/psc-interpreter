@@ -714,7 +714,7 @@ describe("subprograms", () => {
       "A <- 1",
     ];
     await expect(outputOf(code)).resolves.toStrictEqual([
-      "[Function]",
+      "[Subprogram: add]",
       "3",
       "3",
     ]);
